@@ -40,12 +40,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const defaultFilter = setupDatePicker();
         setupSearch();
         
-        // Force Sync Button
-        document.getElementById('force-sync-btn').addEventListener('click', () => {
-            localStorage.clear();
-            location.reload();
-        });
-        
     } catch (error) {
         console.error('CRITICAL ERROR:', error.message);
         const tbody = document.querySelector('#flights-table tbody');
@@ -322,8 +316,6 @@ function updateMasterMetrics(data) {
         return;
     }
     console.log('--- KPI Data Audit ---', { rowCount: data.length, sampleRow: data[0]._raw });
-    const debugEl = document.getElementById('debug-row-count');
-    if (debugEl) debugEl.textContent = `Rows: ${data.length}`;
     
     const totalAc = data.length;
     document.getElementById('master-total-ac').textContent = totalAc;
