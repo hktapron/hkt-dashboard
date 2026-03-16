@@ -363,7 +363,7 @@ function parseMasterDateTime(timeStr, obsDateStr, defaultTimeStr = null) {
     
     if (!effectiveTime || !obsDateStr) return null;
     const [time, dayPart] = effectiveTime.trim().split('/');
-    const timeParts = time.split(':');
+    const timeParts = time.split(/[:\.]/); // Support 10:10 and 10.10
     if (timeParts.length < 2) return null;
     const h = parseInt(timeParts[0]);
     const m = parseInt(timeParts[1]);
@@ -541,44 +541,42 @@ function renderCharts(logs, master, mode, filterValue) {
         labels: hourlyData.map(d => `${String(d.hour).padStart(2, '0')}:00`),
         datasets: [
             { 
-                label: 'Contact (Movement)', 
-                data: hourlyData.map(d => d.contact), 
-                backgroundColor: 'rgba(0, 242, 255, 0.7)', 
-                stack: 'status'
-            },
-            { 
-                label: 'Remote (Movement)', 
-                data: hourlyData.map(d => d.remote), 
-                backgroundColor: 'rgba(112, 0, 255, 0.7)', 
-                stack: 'status'
+                label: 'Total Movements (Arr + Dep)', 
+                data: hourlyData.map(d => d.contact + d.remote), 
+                backgroundColor: 'rgba(0, 242, 255, 0.8)', 
+                borderColor: '#00f2ff',
+                borderWidth: 1,
+                borderRadius: 4,
+                barPercentage: 0.9,
+                categoryPercentage: 0.9
             }
         ]
     }, {
         plugins: {
             tooltip: {
                 callbacks: {
-                    label: (context) => {
-                        const d = hourlyData[context.dataIndex];
-                        if (context.datasetIndex === 0) {
-                            return [
-                                `Total Arrivals: ${d.contact + d.remote}`,
-                                `Contact: ${d.contact}`,
-                                `Remote: ${d.remote}`,
-                                `Bay Changes: ${d.changes}`
-                            ];
-                        }
-                        return null;
+                    footer: (context) => {
+                        const total = hourlyData.reduce((sum, d) => sum + d.contact + d.remote, 0);
+                        return `Daily Total Movements: ${total}`;
                     }
-                },
-                filter: (item) => item.datasetIndex === 0
+                }
             }
         },
         scales: {
-            x: { stacked: true, grid: { display: false } },
-            y: { stacked: true, beginAtZero: true, border: { display: false }, ticks: { stepSize: 1 } }
+            x: { grid: { display: false } },
+            y: { 
+                beginAtZero: true, 
+                border: { display: false }, 
+                ticks: { 
+                    stepSize: 5,
+                    color: '#8a8f98'
+                } 
+            }
         }
     });
 
+    console.log(`[v2.6] Chart Sync Check: Total counted in chart = ${hourlyData.reduce((s,d)=>s+d.contact+d.remote, 0)}`);
+    
     // 4. Monthly Trend Analysis (Only in Monthly mode)
     if (mode === 'monthly') {
         const [filterMonth, filterYear] = filterValue.split('-').map(Number);
