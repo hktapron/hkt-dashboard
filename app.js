@@ -40,7 +40,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const defaultFilter = setupDatePicker();
         setupSearch();
         
-        // Initial trigger is handled inside setupDatePicker() now
+        // Force Sync Button
+        document.getElementById('force-sync-btn').addEventListener('click', () => {
+            localStorage.clear();
+            location.reload();
+        });
         
     } catch (error) {
         console.error('CRITICAL ERROR:', error.message);
@@ -293,7 +297,6 @@ function renderDashboard(mode, filterValue, searchTerm = '') {
 
     updateMasterMetrics(fMaster);
     updateFlowStats(fLogs);
-    updateFlowSummary(fMaster);
     renderCharts(fLogs, fMaster, mode, filterValue);
     updateTable(searchedLogs);
     
@@ -317,8 +320,13 @@ function updateMasterMetrics(data) {
     
     let totalFlights = 0;
     data.forEach(r => {
-        if (r['FLIGHT']) totalFlights++;
-        if (r['FLIGHT_2']) totalFlights++;
+        // Use raw indexes for 100% certainty: index 3 is FLIGHT, index 5 is FLIGHT_2
+        const f1 = (r._raw && r._raw[3] || '').trim().toLowerCase();
+        const f2 = (r._raw && r._raw[5] || '').trim().toLowerCase();
+        const isF = (v) => v !== '' && v !== '-' && v !== 'flight' && v !== 'callsign';
+        
+        if (isF(f1)) totalFlights++;
+        if (isF(f2)) totalFlights++;
     });
     document.getElementById('master-total-flights').textContent = totalFlights;
     
@@ -414,13 +422,7 @@ function updateFlowStats(logs) {
     if (document.getElementById('flow-r-r')) document.getElementById('flow-r-r').textContent = flows['R-R'];
 }
 
-function updateFlowSummary(master) {
-    let totals = { ac: 0 };
-    master.forEach(r => {
-        if (r.AC || (r._raw && r._raw[4])) totals.ac++;
-    });
-    document.getElementById('master-total-ac').textContent = totals.ac;
-}
+
 
 function renderCharts(logs, master, mode, filterValue) {
     // 1. Bay Change Reasons (Doughnut) - Ultra-Robust Extraction
@@ -595,14 +597,14 @@ function renderCharts(logs, master, mode, filterValue) {
         const [filterMonth, filterYear] = filterValue.split('-').map(Number);
         const trendData = {}; // key: day (DD)
         
-        console.log(`--- Monthly Aggregation [${filterValue}] Start ---`);
-        let day9Audit = { rows: 0, f1: 0, f2: 0, changes: 0 };
+        console.log(`--- Monthly Aggregation Start [${filterValue}] ---`);
+        let day9Audit = { rows: 0, movements: 0, changes: 0 };
         
-        master.forEach((r, idx) => {
-            const rawD = r.Date || (r._raw && r._raw[0]);
-            if (!rawD) return;
+        master.forEach((r) => {
+            const rawDate = r.Date || (r._raw && r._raw[0]);
+            if (!rawDate) return;
             
-            const p = rawD.split(/[/-]/);
+            const p = rawDate.split(/[/-]/);
             if (p.length < 3) return;
             
             const mm = parseInt(p[0]);
@@ -614,47 +616,47 @@ function renderCharts(logs, master, mode, filterValue) {
             
             if (!trendData[dd]) trendData[dd] = { flights: 0, changes: 0 };
             
-            const isV = (v) => v && v.trim() !== '' && v.toLowerCase() !== 'flight' && v.toLowerCase() !== 'callsign';
+            const isF = (v) => v && v.trim() !== '' && v.toLowerCase() !== 'flight' && v.toLowerCase() !== 'callsign' && v !== '-';
             
-            let f1Counted = false;
-            let f2Counted = false;
+            // Redundant check: Try index and Property Key
+            const hasF1 = isF(r._raw && r._raw[3]) || isF(r['FLIGHT']);
+            const hasF2 = isF(r._raw && r._raw[5]) || isF(r['FLIGHT_2']);
 
-            if (isV(r['FLIGHT'])) { trendData[dd].flights++; f1Counted = true; }
-            if (isV(r['FLIGHT_2'])) { trendData[dd].flights++; f2Counted = true; }
+            if (hasF1) trendData[dd].flights++;
+            if (hasF2) trendData[dd].flights++;
             
-            const changeIndices = [9, 11, 13, 15, 17];
+            // Monthly Changes
+            const cIdxs = [9, 11, 13, 15, 17];
             let cFound = 0;
-            for (let cIdx of changeIndices) {
-                const val = (r._raw && r._raw[cIdx] || '').trim().toLowerCase();
-                if (val && val !== '-' && val !== '' && val !== 'flight' && val !== 'callsign') { 
-                    trendData[dd].changes++; 
+            cIdxs.forEach(idx => {
+                const val = (r._raw && r._raw[idx] || '').trim();
+                if (isF(val)) {
+                    trendData[dd].changes++;
                     cFound++;
                 }
-            }
+            });
 
             if (dd === 9) {
                 day9Audit.rows++;
-                if (f1Counted) day9Audit.f1++;
-                if (f2Counted) day9Audit.f2++;
+                day9Audit.movements += (hasF1 ? 1 : 0) + (hasF2 ? 1 : 0);
                 day9Audit.changes += cFound;
             }
         });
 
-        console.log('Day 9 Audit Result:', day9Audit);
-        console.log('Final trendData[9]:', trendData[9]);
+        console.log('Day 9 Final Audit:', day9Audit);
 
-        // Prepare labels (1-MaxDays) and filter out zero-data days
+        // Prepare labels
         const maxDays = new Date(filterYear, filterMonth, 0).getDate();
         let labels = [];
         let flightTrend = [];
         let changeTrend = [];
         
         for (let i = 1; i <= maxDays; i++) {
-            const dData = trendData[i];
-            if (dData && (dData.flights > 0 || dData.changes > 0)) {
+            const d = trendData[i];
+            if (d && (d.flights > 0 || d.changes > 0)) {
                 labels.push(String(i));
-                flightTrend.push(dData.flights);
-                changeTrend.push(dData.changes);
+                flightTrend.push(d.flights);
+                changeTrend.push(d.changes);
             }
         }
 
