@@ -5,6 +5,9 @@
 const SHEET_1_ID = '1WJK93iDvj96QcZX2z_R7rDbRo1Fn3_NdQfjSl9v6vFA'; 
 const SHEET_2_ID = '1TF8Oy8tPfw-O_J4WZB2eveekNUEbu2w5U0Wc36THVEI'; 
 
+const flightRegex = /^[A-Z0-9]{2,4}\s?\d{1,4}[A-Z]?$/i;
+const isFlight = (v) => v && v.length > 1 && flightRegex.test(v.trim());
+
 const getCsvUrl = (id) => `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv`)}`;
 
 let logsData = [];
@@ -328,10 +331,6 @@ function renderDashboard(mode, filterValue, searchTerm = '') {
 function updateMasterMetrics(data) {
     const counts = { aircraft: data.length, flights: 0, changes: 0 };
     
-    // Pattern: 2+ alphanumeric followed by optional space and 1-4 digits (e.g., SQ728, SQ 728, 6E 1081)
-    const flightRegex = /^[A-Z0-9]{2,4}\s?\d{1,4}[A-Z]?$/i;
-    const isFlight = (v) => v && v.length > 1 && flightRegex.test(v.trim());
-    
     data.forEach(r => {
         const raw = r._raw || [];
         
@@ -339,11 +338,9 @@ function updateMasterMetrics(data) {
         if (isFlight(raw[3])) counts.flights++;
         if (isFlight(raw[5])) counts.flights++;
 
-        // Count Bay Changes (9, 11, 13, 15, 17) - ensuring we don't count bay numbers as flights
+        // Count Bay Changes (9, 11, 13, 15, 17)
         [9, 11, 13, 15, 17].forEach(idx => {
-            const val = (raw[idx] || '').trim();
-            // Changes in this context are usually flight numbers or 'Assign' text
-            if (isFlight(val)) counts.changes++;
+            if (isFlight((raw[idx] || '').trim())) counts.changes++;
         });
     });
 
@@ -351,7 +348,7 @@ function updateMasterMetrics(data) {
     document.getElementById('master-total-flights').textContent = counts.flights;
     document.getElementById('master-total-change').textContent = counts.changes;
     
-    console.log(`[v2.3] KPI Sync: Found ${data.length} AC, ${counts.flights} Flights, ${counts.changes} Changes`);
+    console.log(`[v2.5] KPI Sync: Found ${data.length} AC, ${counts.flights} Flights, ${counts.changes} Changes`);
 }
 
 function parseMasterDateTime(timeStr, obsDateStr, defaultTimeStr = null) {
@@ -507,9 +504,6 @@ function renderCharts(logs, master, mode, filterValue) {
     
     master.forEach(r => {
         const obsDateStr = r.Date || (r._raw && r._raw[0]);
-        const dateObj = getRecordDate(obsDateStr);
-        if (!dateObj) return;
-
         const callsign = (r.Callsign || r._raw[1] || '').trim();
         const fltIn = (r.FLIGHT || r._raw[3] || '').trim();
         const fltOut = (r.FLIGHT_2 || r._raw[5] || '').trim();
@@ -520,21 +514,26 @@ function renderCharts(logs, master, mode, filterValue) {
         const sobt = r['SOBT'] || (r._raw && r._raw[6]);
         const bayStr = getFinalBay(r);
         const type = classifyBay(bayStr);
-        
-        // 1. Process Arrival (SIBT)
-        const arr = parseMasterDateTime(sibt, obsDateStr);
-        if (arr && arr.getDate() === dateObj.day) {
-            const h = arr.getHours();
-            if (type === 'C') hourlyData[h].contact++;
-            else hourlyData[h].remote++;
+        if (type === 'N/A') return;
+
+        // 1. Process Arrival (Count only if Flight In exists)
+        if (isFlight(fltIn)) {
+            const arr = parseMasterDateTime(sibt, obsDateStr);
+            if (arr) {
+                const h = arr.getHours();
+                if (type === 'C') hourlyData[h].contact++;
+                else hourlyData[h].remote++;
+            }
         }
 
-        // 2. Process Departure (SOBT)
-        const dep = parseMasterDateTime(sobt, obsDateStr);
-        if (dep && dep.getDate() === dateObj.day) {
-            const h = dep.getHours();
-            if (type === 'C') hourlyData[h].contact++;
-            else hourlyData[h].remote++;
+        // 2. Process Departure (Count only if Flight Out exists)
+        if (isFlight(fltOut)) {
+            const dep = parseMasterDateTime(sobt, obsDateStr);
+            if (dep) {
+                const h = dep.getHours();
+                if (type === 'C') hourlyData[h].contact++;
+                else hourlyData[h].remote++;
+            }
         }
     });
 
@@ -542,10 +541,16 @@ function renderCharts(logs, master, mode, filterValue) {
         labels: hourlyData.map(d => `${String(d.hour).padStart(2, '0')}:00`),
         datasets: [
             { 
-                label: 'Total Movements (Arr+Dep)', 
-                data: hourlyData.map(d => d.contact + d.remote), 
+                label: 'Contact (Movement)', 
+                data: hourlyData.map(d => d.contact), 
                 backgroundColor: 'rgba(0, 242, 255, 0.7)', 
-                borderRadius: 4
+                stack: 'status'
+            },
+            { 
+                label: 'Remote (Movement)', 
+                data: hourlyData.map(d => d.remote), 
+                backgroundColor: 'rgba(112, 0, 255, 0.7)', 
+                stack: 'status'
             }
         ]
     }, {
