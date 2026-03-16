@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Apron Management Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="background-system"></div>
+
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="logo">
+                <span class="logo-accent">SMART</span> AIRPORT APRON
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" id="nav-overview">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    Overview
+                </a>
+            </nav>
+            <div class="sidebar-item active" style="padding: 16px; border-top: 1px solid var(--border-glass);">
+                <label style="font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 8px; display: block;">Select Mode</label>
+                <select id="filter-mode" style="width: 100%; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-glass); padding: 8px; border-radius: 8px; margin-bottom: 12px; font-family: inherit;">
+                    <option value="daily">Daily View</option>
+                    <option value="monthly">Monthly View</option>
+                </select>
+
+                <div id="daily-picker-container">
+                    <label style="font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 8px; display: block;">Target Date</label>
+                    <input type="date" id="daily-picker" style="width: 100%; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-glass); padding: 8px; border-radius: 8px; font-family: inherit;">
+                </div>
+
+                <div id="monthly-picker-container" style="display: none;">
+                    <label style="font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 8px; display: block;">Target Month</label>
+                    <select id="monthly-picker" style="width: 100%; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-glass); padding: 8px; border-radius: 8px; font-family: inherit;">
+                        <!-- Populated via JS -->
+                    </select>
+                </div>
+            </div>
+            <div class="sidebar-footer">
+                <div class="theme-switch-wrapper">
+                    <label class="theme-switch" for="checkbox">
+                        <input type="checkbox" id="checkbox" />
+                        <div class="slider round">
+                            <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                            <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-title">
+                    <h1>HKT Apron Analytics & Optimization</h1>
+                    <p class="subtitle">2026 Operational Intelligence</p>
+                </div>
+                <div class="date-picker-container">
+                    <!-- Controlled via Sidebar -->
+                </div>
+            </header>
+
+            <div class="bento-grid">
+                <!-- TOP ROW: KPIs + FLOW (Each span 3, span 3) -->
+                <div class="card-glass kpi-cell" style="grid-column: span 3; grid-row: span 3; padding: 12px;">
+                    <div class="kpi-header" style="margin-bottom: 4px;">
+                        <div class="kpi-icon violet" style="width: 24px; height: 24px; padding: 4px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        </div>
+                        <div class="kpi-label" style="font-size: 0.7rem;">Total Flight</div>
+                    </div>
+                    <div class="kpi-value" id="master-total-flights" style="font-size: 1.6rem;">0</div>
+                </div>
+
+                <div class="card-glass kpi-cell" style="grid-column: span 3; grid-row: span 3; padding: 12px;">
+                    <div class="kpi-header" style="margin-bottom: 4px;">
+                        <div class="kpi-icon cyan" style="width: 24px; height: 24px; padding: 4px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                        </div>
+                        <div class="kpi-label" style="font-size: 0.7rem;">Total Aircraft</div>
+                    </div>
+                    <div class="kpi-value" id="master-total-ac" style="font-size: 1.6rem;">0</div>
+                </div>
+
+                <div class="card-glass kpi-cell" style="grid-column: span 3; grid-row: span 3; padding: 12px;">
+                    <div class="kpi-header" style="margin-bottom: 4px;">
+                        <div class="kpi-icon emerald" style="width: 24px; height: 24px; padding: 4px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                        </div>
+                        <div class="kpi-label" style="font-size: 0.7rem;">Total Change</div>
+                    </div>
+                    <div class="kpi-value" id="master-total-change" style="font-size: 1.6rem;">0</div>
+                </div>
+
+                <!-- NEW: Flow Dynamics integrated into Row 1 -->
+                <div class="card-glass kpi-cell" style="grid-column: span 3; grid-row: span 3; padding: 12px;">
+                    <div class="kpi-header" style="margin-bottom: 6px;">
+                        <div class="kpi-label" style="font-size: 0.7rem;">Flow Dynamics</div>
+                    </div>
+                    <div class="flow-mini-list" style="display: grid; grid-template-columns: 1fr; gap: 4px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span style="color:var(--text-muted); font-weight:500;">Remote → Contact</span><span id="flow-r-c" style="font-weight:800; font-size:1.1rem; color:var(--primary);">0</span></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span style="color:var(--text-muted); font-weight:500;">Contact → Remote</span><span id="flow-c-r" style="font-weight:800; font-size:1.1rem; color:var(--primary);">0</span></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span style="color:var(--text-muted); font-weight:500;">Contact → Contact</span><span id="flow-c-c" style="font-weight:800; font-size:1.1rem; color:var(--primary);">0</span></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span style="color:var(--text-muted); font-weight:500;">Remote → Remote</span><span id="flow-r-r" style="font-weight:800; font-size:1.1rem; color:var(--primary);">0</span></div>
+                    </div>
+                </div>
+
+                <!-- ROW 2: Bay Change Reasons (Full Width, downsized span) -->
+                <div class="card-glass span-12" style="grid-row: span 4; height: auto;">
+                    <h3 class="chart-title">Bay Change Reasons</h3>
+                    <div class="reasons-container" style="margin-top: 4px; gap: 16px;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <canvas id="reasonsChart" style="max-height: 150px;"></canvas>
+                        </div>
+                        <div id="top-reasons-list" class="reasons-grid" style="flex: 2; gap: 4px;">
+                            <!-- Reasons will pop here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 3: Hourly Traffic Analysis (Expanded) -->
+                <div class="card-glass span-12" style="grid-row: span 6;">
+                    <h3 class="chart-title">Peak Hour Operations</h3>
+                    <div class="chart-inner" style="height: 280px;"><canvas id="peakHourChart"></canvas></div>
+                </div>
+
+                <!-- Row 4: Utilization (Expanded) -->
+                <div class="card-glass span-12" style="grid-row: span 6;">
+                    <h3 class="chart-title" style="margin-bottom: 4px;">Contact Bay Utilization (Bays 4-15)</h3>
+                    <div class="chart-inner" style="height: 280px;"><canvas id="utilizationChart"></canvas></div>
+                </div>
+
+                <!-- NEW: Monthly Trend Charts (Visible only in Monthly mode) -->
+                <div id="monthly-trends-container" style="grid-column: span 12; display: none;">
+                    <div class="card-glass span-12" style="grid-row: span 6;">
+                        <h3 class="chart-title">Monthly Total Flights Trend</h3>
+                        <div class="chart-inner" style="height: 280px;"><canvas id="monthlyFlightsChart"></canvas></div>
+                    </div>
+                    <div class="card-glass span-12" style="grid-row: span 6;">
+                        <h3 class="chart-title">Monthly Total Bay Changes Trend</h3>
+                        <div class="chart-inner" style="height: 280px;"><canvas id="monthlyChangesChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Section -->
+            <section class="logs-section">
+                <div class="table-header">
+                    <h2>Movement Analysis Logs</h2>
+                    <div class="table-tools">
+                        <input type="text" id="flight-search" class="glass-input" placeholder="Search Flight #...">
+                    </div>
+                </div>
+                <div class="table-glass-container">
+                    <table id="flights-table">
+                        <thead>
+                            <tr>
+                                <th>Flight In/Out</th>
+                                <th>Type</th>
+                                <th>Schedule</th>
+                                <th>Original</th>
+                                <th>Final</th>
+                                <th>Primary Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- System Loader -->
+    <div id="loader" class="loader-overlay">
+        <div class="loader-content">
+            <div class="spinner"></div>
+            <p>Syncing with Cloud Data...</p>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
