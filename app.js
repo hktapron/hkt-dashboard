@@ -404,9 +404,17 @@ function renderDashboard(mode, filterValue, searchTerm = '') {
     if (mode === 'monthly') {
         if (monthlyTrends) monthlyTrends.style.display = 'contents';
         if (logsSection) logsSection.style.display = 'none';
-        if (cardReasons) cardReasons.style.display = 'none';
-        if (cardPeak) cardPeak.style.display = 'none';
-        if (cardUtil) cardUtil.style.display = 'none';
+        
+        // Ensure all cards are visible in Monthly mode but with updated titles
+        if (cardReasons) cardReasons.style.display = 'block';
+        if (cardPeak) {
+            cardPeak.style.display = 'block';
+            cardPeak.querySelector('.chart-title').textContent = 'Monthly Peak Hour Distribution';
+        }
+        if (cardUtil) {
+            cardUtil.style.display = 'block';
+            cardUtil.querySelector('.chart-title').textContent = 'Monthly Contact Bay Utilization';
+        }
     } else {
         if (monthlyTrends) monthlyTrends.style.display = 'none';
         if (logsSection) logsSection.style.display = 'block';
