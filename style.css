@@ -534,31 +534,41 @@ input:checked + .slider::before { transform: translateX(22px); }
     .header-title h1 { font-size: 1.5rem; letter-spacing: -0.5px; }
     .subtitle { font-size: 0.75rem; }
 
-    /* Bento Grid Mobile: 2 Columns for KPIs */
+    /* Bento Grid Mobile: 2 Columns for KPIs, 1 Column for Charts */
     .bento-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 1fr 1fr;
         grid-auto-rows: auto;
-        gap: 8px;
+        gap: 12px;
+    }
+
+    .card-glass {
+        grid-column: span 2 !important; /* Force all cards to full width by default */
+        grid-row: auto !important;
+        margin-bottom: 4px;
     }
 
     .kpi-cell { 
-        grid-column: span 1 !important; 
-        padding: 12px !important;
+        grid-column: span 1 !important; /* ONLY KPIs stay 2-per-row */
     }
 
     .span-12, .span-8, .span-4 { grid-column: span 2 !important; }
     
-    .kpi-value { font-size: 1.4rem; }
-    .kpi-label { font-size: 0.6rem; }
+    .kpi-value { font-size: 1.5rem; }
+    .kpi-label { font-size: 0.65rem; }
 
     /* Table Responsiveness */
     .logs-section { padding: 12px; }
-    th:nth-child(2), td:nth-child(2), /* Hide Type */
-    th:nth-child(6), td:nth-child(6)  /* Hide Primary Reason on narrow screens */
+    /* Hide non-essential columns on mobile: Type(2), Schedule(3), Original(4) */
+    th:nth-child(2), td:nth-child(2),
+    th:nth-child(3), td:nth-child(3),
+    th:nth-child(4), td:nth-child(4),
+    th:nth-child(6), td:nth-child(6) 
     { display: none; }
 
-    table { min-width: 500px; }
-    .table-glass-container { overflow-x: auto; }
+    table { width: 100%; min-width: 0; }
+    .table-glass-container { overflow-x: visible; }
+    
+    td, th { padding: 12px 8px; font-size: 0.8rem; }
 
     .chart-inner { height: 220px !important; }
     
