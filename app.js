@@ -233,6 +233,14 @@ function setupDatePicker() {
     dailyPicker.addEventListener('change', triggerRender);
     monthlyPicker.addEventListener('change', triggerRender);
 
+    // 6. Comparative Mode Toggle (Placeholder for future logic)
+    const compareBtn = document.getElementById('toggle-compare');
+    if (compareBtn) {
+        compareBtn.addEventListener('click', () => {
+            alert('Comparative Mode: Select secondary date to compare with current view.');
+        });
+    }
+
     function triggerRender() {
         const mode = filterMode.value;
         const val = mode === 'daily' ? dailyPicker.value : monthlyPicker.value;
@@ -505,50 +513,50 @@ function renderCharts(logs, master, mode, filterValue) {
     master.forEach(r => {
         const obsDateStr = r.Date || (r._raw && r._raw[0]);
         const callsign = (r.Callsign || r._raw[1] || '').trim();
-        const fltIn = (r.FLIGHT || r._raw[3] || '').trim();
-        const fltOut = (r.FLIGHT_2 || r._raw[5] || '').trim();
-        
         if (!callsign || callsign === '-' || callsign.toLowerCase() === 'callsign') return;
 
         const sibt = r['SIBT'] || (r._raw && r._raw[2]);
-        const sobt = r['SOBT'] || (r._raw && r._raw[6]);
         const bayStr = getFinalBay(r);
         const type = classifyBay(bayStr);
         if (type === 'N/A') return;
 
-        // 1. Process Arrival (Count only if Flight In exists)
-        if (isFlight(fltIn)) {
-            const arr = parseMasterDateTime(sibt, obsDateStr);
-            if (arr) {
-                const h = arr.getHours();
-                if (type === 'C') hourlyData[h].contact++;
-                else hourlyData[h].remote++;
-            }
+        // Occupancy Logic: Count 1 aircraft at its Arrival (SIBT) hour
+        const arr = parseMasterDateTime(sibt, obsDateStr);
+        if (arr) {
+            const h = arr.getHours();
+            if (type === 'C') hourlyData[h].contact++;
+            else hourlyData[h].remote++;
         }
+    });
 
-        // 2. Process Departure (Count only if Flight Out exists)
-        if (isFlight(fltOut)) {
-            const dep = parseMasterDateTime(sobt, obsDateStr);
-            if (dep) {
-                const h = dep.getHours();
-                if (type === 'C') hourlyData[h].contact++;
-                else hourlyData[h].remote++;
-            }
-        }
+    // Peak Highlighter: Rank hours by total volume
+    const sortedHours = [...hourlyData].sort((a, b) => (b.contact + b.remote) - (a.contact + a.remote));
+    const top3 = sortedHours.slice(0, 3).map(d => d.hour);
+    
+    const backgroundColors = hourlyData.map(d => {
+        const total = d.contact + d.remote;
+        if (total === 0) return 'rgba(255, 255, 255, 0.05)';
+        if (d.hour === top3[0]) return '#00ff9d'; // Rank 1 (Emerald)
+        if (d.hour === top3[1]) return '#00f2ff'; // Rank 2 (Cyan)
+        if (d.hour === top3[2]) return '#7000ff'; // Rank 3 (Violet)
+        return 'rgba(255, 255, 255, 0.2)'; // Others (Muted)
     });
 
     initChart('peakHourChart', 'bar', {
         labels: hourlyData.map(d => `${String(d.hour).padStart(2, '0')}:00`),
         datasets: [
             { 
-                label: 'Total Movements (Arr + Dep)', 
-                data: hourlyData.map(d => d.contact + d.remote), 
-                backgroundColor: 'rgba(0, 242, 255, 0.8)', 
-                borderColor: '#00f2ff',
-                borderWidth: 1,
-                borderRadius: 4,
-                barPercentage: 0.9,
-                categoryPercentage: 0.9
+                label: 'Aircraft Occupancy (Contact)', 
+                data: hourlyData.map(d => d.contact), 
+                backgroundColor: backgroundColors, 
+                stack: 'ac'
+            },
+            { 
+                label: 'Aircraft Occupancy (Remote)', 
+                data: hourlyData.map(d => d.remote), 
+                backgroundColor: backgroundColors,
+                opacity: 0.6,
+                stack: 'ac'
             }
         ]
     }, {
@@ -557,25 +565,23 @@ function renderCharts(logs, master, mode, filterValue) {
                 callbacks: {
                     footer: (context) => {
                         const total = hourlyData.reduce((sum, d) => sum + d.contact + d.remote, 0);
-                        return `Daily Total Movements: ${total}`;
+                        return `Daily Total Aircraft: ${total}`;
                     }
                 }
             }
         },
         scales: {
-            x: { grid: { display: false } },
+            x: { stacked: true, grid: { display: false } },
             y: { 
+                stacked: true,
                 beginAtZero: true, 
                 border: { display: false }, 
-                ticks: { 
-                    stepSize: 5,
-                    color: '#8a8f98'
-                } 
+                ticks: { stepSize: 5 } 
             }
         }
     });
 
-    console.log(`[v2.6] Chart Sync Check: Total counted in chart = ${hourlyData.reduce((s,d)=>s+d.contact+d.remote, 0)}`);
+    console.log(`[v2.8] Peak Logic Reverted: Total A/C in chart = ${hourlyData.reduce((s,d)=>s+d.contact+d.remote, 0)}`);
     
     // 4. Monthly Trend Analysis (Only in Monthly mode)
     if (mode === 'monthly') {
@@ -654,18 +660,30 @@ function updateTable(data) {
     tbody.innerHTML = '';
     data.slice(0, 10).forEach(r => {
         const tr = document.createElement('tr');
+        const finalBay = r['Final Bay'] || (r._raw && r._raw[8]);
+        const type = classifyBay(finalBay);
+        
         const hasChange = r['Original Bay'] !== r['Final Bay'];
         const flightIn = (r['Flight In'] || '').trim();
         const flightOut = (r['Flight Out'] || '').trim();
         const combinedFlight = (flightIn && flightOut) ? `${flightIn}/${flightOut.replace(/[A-Za-z]+/, '')}` : (flightIn || flightOut || '-');
         
         const [reason, initial] = (r['Bay Reason 1'] || '-').split(',').map(s => s.trim());
+        
+        // Color coding logic
+        const bayColor = type === 'C' ? 'rgba(0, 242, 255, 0.15)' : 'rgba(112, 0, 255, 0.15)';
+        const bayLabelColor = type === 'C' ? '#00f2ff' : '#a855f7';
+
         tr.innerHTML = `
             <td style="font-weight:700">${combinedFlight}</td>
             <td><span style="background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 6px;">${r['A/C Type']}</span></td>
             <td>${r['SIBT']} → ${r['SOBT']}</td>
             <td>${r['Original Bay']}</td>
-            <td style="color: ${hasChange ? 'var(--primary)' : 'inherit'}; font-weight: ${hasChange ? '800' : '400'}">${r['Final Bay']}</td>
+            <td>
+                <span style="background: ${bayColor}; color: ${bayLabelColor}; padding: 4px 10px; border-radius: 6px; font-weight: 800; border: 1px solid ${bayLabelColor}44;">
+                    ${finalBay}
+                </span>
+            </td>
             <td><div style="font-weight:600">${reason || '-'}</div><div style="font-size:0.75rem; color:var(--primary)">${initial ? 'Assignee: '+initial : ''}</div></td>
         `;
         tbody.appendChild(tr);
