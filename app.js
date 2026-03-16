@@ -233,6 +233,27 @@ function setupDatePicker() {
     dailyPicker.addEventListener('change', triggerRender);
     monthlyPicker.addEventListener('change', triggerRender);
 
+    // Sidebar Reset Logic
+    const navOverview = document.getElementById('nav-overview');
+    if (navOverview) {
+        navOverview.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            navOverview.classList.add('active');
+            triggerRender();
+        });
+    }
+
+    const toggleCompare = document.getElementById('toggle-compare');
+    if (toggleCompare) {
+        toggleCompare.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            toggleCompare.classList.add('active');
+            modal.classList.add('active');
+        });
+    }
+
     // 6. Comparative Mode Toggle
     const compareBtn = document.getElementById('toggle-compare');
     const modal = document.getElementById('modal-overlay');
@@ -280,8 +301,12 @@ function setupDatePicker() {
     const executeBtn = document.getElementById('execute-compare');
     if (executeBtn) {
         executeBtn.addEventListener('click', () => {
-            alert('Analytical Comparison Report Engine: This feature is being finalized with the 2026 data model. Coming in the next shift update!');
-            modal.classList.remove('active');
+            const scope = compareScope.value;
+            const v1 = scope === 'daily' ? document.getElementById('compare-d1').value : document.getElementById('compare-m1').value;
+            const v2 = scope === 'daily' ? document.getElementById('compare-d2').value : document.getElementById('compare-m2').value;
+            
+            if (!v1 || !v2) { alert('Please select both targets to compare.'); return; }
+            renderCompareDashboard(scope, v1, v2);
         });
     }
 
@@ -345,7 +370,7 @@ function getRecordDate(rawDate) {
 }
 
 function renderDashboard(mode, filterValue, searchTerm = '') {
-    console.log(`[v2.2] Rendering: Mode=${mode}, Value=${filterValue}`);
+    console.log(`[v3.3] Rendering: Mode=${mode}, Value=${filterValue}`);
     
     const fLogs = logsData.filter(r => {
         const dObj = getRecordDate(r.Date || (r._raw && r._raw[0]));
@@ -369,42 +394,148 @@ function renderDashboard(mode, filterValue, searchTerm = '') {
     renderCharts(fLogs, fMaster, mode, filterValue);
     updateTable(searchedLogs);
     
-    const dailyOnlyElements = document.querySelectorAll('.bento-grid > .card-glass:not(.span-12), .span-12:not(#monthly-trends-container)');
+    // Visibility Management
     const monthlyTrends = document.getElementById('monthly-trends-container');
     const logsSection = document.querySelector('.logs-section');
+    const cardReasons = document.getElementById('card-reasons');
+    const cardPeak = document.getElementById('card-peak');
+    const cardUtil = document.getElementById('card-util');
 
     if (mode === 'monthly') {
         if (monthlyTrends) monthlyTrends.style.display = 'contents';
         if (logsSection) logsSection.style.display = 'none';
-        dailyOnlyElements.forEach(el => { if (!el.contains(monthlyTrends)) el.style.display = 'none'; });
+        if (cardReasons) cardReasons.style.display = 'none';
+        if (cardPeak) cardPeak.style.display = 'none';
+        if (cardUtil) cardUtil.style.display = 'none';
     } else {
         if (monthlyTrends) monthlyTrends.style.display = 'none';
         if (logsSection) logsSection.style.display = 'block';
-        dailyOnlyElements.forEach(el => el.style.display = 'block');
+        if (cardReasons) cardReasons.style.display = 'block';
+        if (cardPeak) {
+            cardPeak.style.display = 'block';
+            cardPeak.querySelector('.chart-title').textContent = 'Peak Hour Operations';
+        }
+        if (cardUtil) {
+            cardUtil.style.display = 'block';
+            cardUtil.querySelector('.chart-title').textContent = 'Contact Bay Utilization (Bays 4-15)';
+        }
+    }
+}
+
+function renderCompareDashboard(scope, val1, val2) {
+    console.log(`[v3.3] Rendering Comparison: Scope=${scope}, ${val1} vs ${val2}`);
+    const modal = document.getElementById('modal-overlay');
+    if (modal) modal.classList.remove('active');
+
+    // Filter Data for both targets
+    const filter = (data, val) => data.filter(r => {
+        const d = getRecordDate(r.Date || (r._raw && r._raw[0]));
+        if (!d) return false;
+        return scope === 'daily' ? d.iso === val : d.monthKey === val;
+    });
+
+    const master1 = filter(masterData, val1);
+    const master2 = filter(masterData, val2);
+    const logs1 = filter(logsData, val1);
+    const logs2 = filter(logsData, val2);
+
+    // Hide daily/monthly specific elements, show charts only
+    document.getElementById('monthly-trends-container').style.display = 'none';
+    document.querySelector('.logs-section').style.display = 'none';
+    document.getElementById('card-reasons').style.display = 'none';
+    document.getElementById('card-peak').style.display = 'block';
+    document.getElementById('card-util').style.display = 'block';
+
+    // Update KPI for first target mainly or hide? Let's show Target A for now
+    updateMasterMetrics(master1);
+    updateFlowStats(logs1);
+
+    // Render Comparative Charts
+    renderCompareCharts(scope, master1, master2, logs1, logs2, val1, val2);
+}
+
+function renderCompareCharts(scope, m1, m2, l1, l2, v1, v2) {
+    const colorA = '#00f2ff';
+    const colorB = '#ff70ff';
+
+    if (scope === 'daily') {
+        // Compare Peak Hour (Hourly)
+        const computeHourly = (m) => {
+            const data = Array(24).fill(0);
+            m.forEach(r => {
+                const arr = parseMasterDateTime(r['SIBT'] || (r._raw && r._raw[2]), r.Date || (r._raw && r._raw[0]));
+                if (arr) data[arr.getHours()]++;
+            });
+            return data;
+        };
+
+        initChart('peakHourChart', 'line', {
+            labels: Array.from({length:24}, (_,i) => `${String(i).padStart(2,'0')}:00`),
+            datasets: [
+                { label: v1, data: computeHourly(m1), borderColor: colorA, backgroundColor: colorA+'22', fill: true, tension: 0.4 },
+                { label: v2, data: computeHourly(m2), borderColor: colorB, backgroundColor: colorB+'22', fill: true, tension: 0.4 }
+            ]
+        }, { scales: { y: { beginAtZero: true } } });
+
+        // Compare Util (Bays)
+        const computeUtil = (l) => {
+            const usage = {};
+            for (let i=4; i<=15; i++) if (i!==13) usage[i]=0;
+            l.forEach(r => {
+                const b = parseInt(r['Final Bay'] || (r._raw && r._raw[8]));
+                if (usage[b] !== undefined) usage[b]++;
+            });
+            return Object.values(usage);
+        };
+
+        initChart('utilizationChart', 'bar', {
+            labels: Array.from({length:12}, (_,i) => `Bay ${i<9?i+4:i+5}`),
+            datasets: [
+                { label: v1, data: computeUtil(l1), backgroundColor: colorA+'CC', borderRadius: 4 },
+                { label: v2, data: computeUtil(l2), backgroundColor: colorB+'CC', borderRadius: 4 }
+            ]
+        });
+    } else {
+        // Compare Months (Monthly Trends)
+        const computeMonthly = (m, filterVal) => {
+            const [mon, year] = filterVal.split('-').map(Number);
+            const trend = {};
+            m.forEach(r => {
+                const d = getRecordDate(r.Date || (r._raw && r._raw[0]));
+                if (!d || d.month !== mon || d.year !== year) return;
+                trend[d.day] = (trend[d.day] || 0) + (isFlight(r._raw[3])?1:0) + (isFlight(r._raw[5])?1:0);
+            });
+            return trend;
+        };
+        
+        const trend1 = computeMonthly(m1, v1);
+        const trend2 = computeMonthly(m2, v2);
+        const allDays = [...new Set([...Object.keys(trend1), ...Object.keys(trend2)])].sort((a,b)=>Number(a)-Number(b));
+
+        // Redirect these to existing peak/util cards for simplicity in compare mode
+        document.getElementById('card-peak').querySelector('.chart-title').textContent = 'Monthly Flight Comparison';
+        initChart('peakHourChart', 'line', {
+            labels: allDays,
+            datasets: [
+                { label: v1, data: allDays.map(d => trend1[d]||0), borderColor: colorA, fill: false, tension: 0.4 },
+                { label: v2, data: allDays.map(d => trend2[d]||0), borderColor: colorB, fill: false, tension: 0.4 }
+            ]
+        });
+        document.getElementById('card-util').style.display = 'none';
     }
 }
 
 function updateMasterMetrics(data) {
     const counts = { aircraft: data.length, flights: 0, changes: 0 };
-    
     data.forEach(r => {
         const raw = r._raw || [];
-        
-        // Count Arrivals/Departures from standard columns (3 and 5)
         if (isFlight(raw[3])) counts.flights++;
         if (isFlight(raw[5])) counts.flights++;
-
-        // Count Bay Changes (9, 11, 13, 15, 17)
-        [9, 11, 13, 15, 17].forEach(idx => {
-            if (isFlight((raw[idx] || '').trim())) counts.changes++;
-        });
+        [9, 11, 13, 15, 17].forEach(idx => { if (isFlight(raw[idx])) counts.changes++; });
     });
-
     document.getElementById('master-total-ac').textContent = counts.aircraft;
     document.getElementById('master-total-flights').textContent = counts.flights;
     document.getElementById('master-total-change').textContent = counts.changes;
-    
-    console.log(`[v2.5] KPI Sync: Found ${data.length} AC, ${counts.flights} Flights, ${counts.changes} Changes`);
 }
 
 function parseMasterDateTime(timeStr, obsDateStr, defaultTimeStr = null) {
