@@ -45,9 +45,13 @@ if (mobileToggle) {
 
 if (mobileOverlay) {
     mobileOverlay.addEventListener('click', () => {
-        sidebar.classList.remove('active');
-        mobileOverlay.classList.remove('active');
+        closeSidebar();
     });
+}
+
+function closeSidebar() {
+    sidebar.classList.remove('active');
+    if (mobileOverlay) mobileOverlay.classList.remove('active');
 }
 
 // Initialize application
@@ -230,8 +234,8 @@ function setupDatePicker() {
     });
 
     // 5. Regular Listeners
-    dailyPicker.addEventListener('change', triggerRender);
-    monthlyPicker.addEventListener('change', triggerRender);
+    dailyPicker.addEventListener('change', () => { triggerRender(); closeSidebar(); });
+    monthlyPicker.addEventListener('change', () => { triggerRender(); closeSidebar(); });
 
     // Sidebar Reset Logic
     const navOverview = document.getElementById('nav-overview');
@@ -241,6 +245,7 @@ function setupDatePicker() {
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             navOverview.classList.add('active');
             triggerRender();
+            closeSidebar();
         });
     }
 
@@ -370,7 +375,7 @@ function getRecordDate(rawDate) {
 }
 
 function renderDashboard(mode, filterValue, searchTerm = '') {
-    console.log(`[v3.3] Rendering: Mode=${mode}, Value=${filterValue}`);
+    console.log(`[v3.9] Rendering: Mode=${mode}, Value=${filterValue}`);
     
     const fLogs = logsData.filter(r => {
         const dObj = getRecordDate(r.Date || (r._raw && r._raw[0]));
