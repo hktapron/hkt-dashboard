@@ -269,14 +269,15 @@ function renderDashboard(mode, filterValue, searchTerm = '') {
         const rawD = r.Date || (r._raw && r._raw[0]) || '';
         if (!rawD) return false;
         
-        const sep = rawD.includes('/') ? '/' : '-';
-        const parts = rawD.split(sep);
-        if (parts.length < 3) return false;
+        const p = rawD.split(/[/-]/);
+        if (p.length < 3) return false;
         
-        // M/D/Y Input format: parts[0]=Month, parts[1]=Day, parts[2]=Year
-        const m = parts[0].padStart(2, '0');
-        const d = parts[1].padStart(2, '0');
-        const y = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+        // M/D/Y normalization
+        const m = p[0].trim().padStart(2, '0');
+        const d = p[1].trim().padStart(2, '0');
+        const yValue = p[2].trim();
+        const y = yValue.length === 2 ? `20${yValue}` : yValue;
+        
         const recordIso = `${y}-${m}-${d}`;
         const recordMonthKey = `${m}-${y}`;
 
@@ -313,33 +314,43 @@ function renderDashboard(mode, filterValue, searchTerm = '') {
 }
 
 function updateMasterMetrics(data) {
-    if (!data || data.length === 0) return;
+    if (!data || data.length === 0) {
+        console.warn('updateMasterMetrics: No data received');
+        document.getElementById('master-total-ac').textContent = '0';
+        document.getElementById('master-total-flights').textContent = '0';
+        document.getElementById('master-total-change').textContent = '0';
+        return;
+    }
+    console.log('--- KPI Data Audit ---', { rowCount: data.length, sampleRow: data[0]._raw });
+    const debugEl = document.getElementById('debug-row-count');
+    if (debugEl) debugEl.textContent = `Rows: ${data.length}`;
     
     const totalAc = data.length;
     document.getElementById('master-total-ac').textContent = totalAc;
     
     let totalFlights = 0;
+    let totalChanges = 0;
+
     data.forEach(r => {
-        // Use raw indexes for 100% certainty: index 3 is FLIGHT, index 5 is FLIGHT_2
+        // Use raw indexes for 100% certainty: 3=FLIGHT, 5=FLIGHT_2
         const f1 = (r._raw && r._raw[3] || '').trim().toLowerCase();
         const f2 = (r._raw && r._raw[5] || '').trim().toLowerCase();
         const isF = (v) => v !== '' && v !== '-' && v !== 'flight' && v !== 'callsign';
         
         if (isF(f1)) totalFlights++;
         if (isF(f2)) totalFlights++;
-    });
-    document.getElementById('master-total-flights').textContent = totalFlights;
-    
-    let totalChanges = 0;
-    data.forEach(r => {
+
+        // Changes: 9, 11, 13, 15, 17
         const indices = [9, 11, 13, 15, 17];
         indices.forEach(idx => {
-            const cellValue = (r._raw[idx] || '').trim();
-            if (cellValue !== '') totalChanges++;
+            const val = (r._raw && r._raw[idx] || '').trim();
+            if (isF(val)) totalChanges++;
         });
     });
-    
+
+    document.getElementById('master-total-flights').textContent = totalFlights;
     document.getElementById('master-total-change').textContent = totalChanges;
+    
     const percent = totalAc > 0 ? ((totalChanges / totalAc) * 100).toFixed(1) : 0;
     const trendEl = document.getElementById('master-change-percent');
     if (trendEl) trendEl.textContent = `${percent}% of total scope`;
