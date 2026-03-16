@@ -49,6 +49,13 @@ if (mobileOverlay) {
     });
 }
 
+const sidebarCloseBtn = document.getElementById('close-sidebar-btn');
+if (sidebarCloseBtn) {
+    sidebarCloseBtn.addEventListener('click', () => {
+        closeSidebar();
+    });
+}
+
 function closeSidebar() {
     sidebar.classList.remove('active');
     if (mobileOverlay) mobileOverlay.classList.remove('active');
@@ -376,7 +383,7 @@ function getRecordDate(rawDate) {
 }
 
 function renderDashboard(mode, filterValue, searchTerm = '') {
-    console.log(`[v4.1] Rendering: Mode=${mode}, Value=${filterValue}`);
+    console.log(`[v4.2] Rendering: Mode=${mode}, Value=${filterValue}`);
     
     const fLogs = logsData.filter(r => {
         const dObj = getRecordDate(r.Date || (r._raw && r._raw[0]));

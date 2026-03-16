@@ -503,11 +503,12 @@ input:checked + .slider::before { transform: translateX(22px); }
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.6);
     backdrop-filter: blur(4px);
-    z-index: 2999;
+    z-index: 3998; /* Just below sidebar */
     opacity: 0;
     transition: opacity 0.3s ease;
+    cursor: pointer;
 }
 
 @media (max-width: 850px) {
@@ -542,6 +543,20 @@ input:checked + .slider::before { transform: translateX(22px); }
     .mobile-drawer-overlay.active {
         display: block;
         opacity: 1;
+    }
+
+    .sidebar-close-btn {
+        display: block;
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid var(--border-glass);
+        color: var(--text-muted);
+        padding: 8px;
+        border-radius: 12px;
+        cursor: pointer;
+        z-index: 100;
     }
 
     .nav-menu { display: none; }
