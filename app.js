@@ -231,6 +231,7 @@ function setupDatePicker() {
             monthlyContainer.style.display = 'block';
             triggerRender();
         }
+        closeSidebar();
     });
 
     // 5. Regular Listeners
@@ -375,7 +376,7 @@ function getRecordDate(rawDate) {
 }
 
 function renderDashboard(mode, filterValue, searchTerm = '') {
-    console.log(`[v3.9] Rendering: Mode=${mode}, Value=${filterValue}`);
+    console.log(`[v4.0] Rendering: Mode=${mode}, Value=${filterValue}`);
     
     const fLogs = logsData.filter(r => {
         const dObj = getRecordDate(r.Date || (r._raw && r._raw[0]));

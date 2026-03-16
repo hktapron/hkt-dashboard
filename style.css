@@ -523,7 +523,7 @@ input:checked + .slider::before { transform: translateX(22px); }
         left: 0;
         top: 0;
         bottom: 0;
-        width: 85vw !important;
+        width: 75vw !important;
         z-index: 4000;
         transform: translateX(-100%);
         transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -569,10 +569,11 @@ input:checked + .slider::before { transform: translateX(22px); }
         width: 100%; /* Vertical stack even for KPIs */
     }
 
-    .span-12, .span-8, .span-4, #monthly-trends-container { 
+    .span-12, .span-8, .span-4 { 
         width: 100%; 
         display: block;
     }
+    #monthly-trends-container { width: 100%; }
     
     .kpi-value { font-size: 1.8rem; } /* Slightly larger for single column */
     .kpi-label { font-size: 0.75rem; }
