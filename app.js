@@ -383,7 +383,7 @@ function getRecordDate(rawDate) {
 }
 
 function renderDashboard(mode, filterValue, searchTerm = '') {
-    console.log(`[v4.2] Rendering: Mode=${mode}, Value=${filterValue}`);
+    console.log(`[v4.3] Rendering: Mode=${mode}, Value=${filterValue}`);
     
     const fLogs = logsData.filter(r => {
         const dObj = getRecordDate(r.Date || (r._raw && r._raw[0]));

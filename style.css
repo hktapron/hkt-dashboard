@@ -546,17 +546,20 @@ input:checked + .slider::before { transform: translateX(22px); }
     }
 
     .sidebar-close-btn {
-        display: block;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         position: absolute;
         top: 20px;
         right: 20px;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid var(--border-glass);
-        color: var(--text-muted);
-        padding: 8px;
-        border-radius: 12px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: white;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
         cursor: pointer;
-        z-index: 100;
+        z-index: 5000; /* Higher than sidebar padding */
     }
 
     .nav-menu { display: none; }
