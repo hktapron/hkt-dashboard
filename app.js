@@ -753,33 +753,48 @@ function renderCharts(logs, master, mode, filterValue) {
             [9, 11, 13, 15, 17].forEach(idx => { if (isFlight(raw[idx])) trend[dObj.day].changes++; });
         });
 
-        // FIXED: Extract labels and data arrays from the trend object
         const labels = Object.keys(trend).sort((a,b)=>Number(a)-Number(b));
-        const flightTrend = labels.map(d => trend[d].flights);
-        const changeTrend = labels.map(d => trend[d].changes);
+        const flightData = labels.map(d => trend[d].flights);
+        const changeData = labels.map(d => trend[d].changes);
         
-        const sortedF = [...flightTrend].sort((a,b) => b-a).slice(0, 3);
-        const sortedC = [...changeTrend].sort((a,b) => b-a).slice(0, 1);
+        // Single Peak Logic
+        const maxF = Math.max(...flightData);
+        const maxC = Math.max(...changeData);
         
+        const colors = {
+            flight: { standard: '#00f2ff', peak: '#00ff9d' },
+            change: { standard: '#f59e0b', peak: '#ff00f2' }
+        };
+
+        const fColors = flightData.map(v => (v === maxF && v > 0) ? colors.flight.peak : colors.flight.standard);
+        const cColors = changeData.map(v => (v === maxC && v > 0) ? colors.change.peak : colors.change.standard);
+        
+        // Sync JS Titles (if container exists)
+        if (monthlyTrends) {
+            const fTitle = monthlyTrends.querySelector('div:nth-child(1) .chart-title');
+            const cTitle = monthlyTrends.querySelector('div:nth-child(2) .chart-title');
+            if (fTitle) fTitle.textContent = 'Monthly Flights';
+            if (cTitle) cTitle.textContent = 'Monthly Total Bay Changes';
+        }
+
         initChart('monthlyFlightsChart', 'bar', {
             labels,
-            datasets: [{ 
-                label: 'Flights', 
-                data: flightTrend, 
-                borderRadius: 4,
-                backgroundColor: flightTrend.map(v => v === sortedF[0] ? '#00f2ff' : v === sortedF[1] ? '#ff70ff' : v === sortedF[2] ? '#aeff00' : 'rgba(255,255,255,0.15)') 
-            }]
-        }, { scales: { y: { beginAtZero: false, suggestedMin: Math.floor(Math.min(...flightTrend)*0.98) } } });
+            datasets: [{ label: 'Flights', data: flightData, borderRadius: 4, backgroundColor: fColors }]
+        }, { 
+            scales: { 
+                y: { 
+                    beginAtZero: false, 
+                    // Adjust scaling: If 318 is min and 350 is max, suggestedMin at 300 makes it look okay.
+                    // If it's too 'mangled', we add more breathing room.
+                    suggestedMin: Math.floor(Math.min(...flightData) * 0.9) 
+                } 
+            } 
+        });
         
         initChart('monthlyChangesChart', 'bar', {
             labels,
-            datasets: [{ 
-                label: 'Changes', 
-                data: changeTrend, 
-                borderRadius: 4,
-                backgroundColor: changeTrend.map(v => (v === sortedC[0] && v > 0) ? '#ff70ff' : 'rgba(255,255,255,0.15)') 
-            }]
-        });
+            datasets: [{ label: 'Changes', data: changeData, borderRadius: 4, backgroundColor: cColors }]
+        }, { scales: { y: { beginAtZero: true } } });
     }
 }
 
