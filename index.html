@@ -13,6 +13,17 @@
 <body>
     <div class="background-system"></div>
 
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <div class="mobile-logo">
+            <span class="logo-accent">SMART</span> APRON
+        </div>
+        <button id="mobile-filter-toggle" class="mobile-toggle-btn">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            Filters
+        </button>
+    </header>
+
     <div class="dashboard-container">
         <aside class="sidebar">
             <div class="logo">
@@ -184,6 +195,9 @@
             <p>Syncing with Cloud Data...</p>
         </div>
     </div>
+
+    <!-- Mobile Drawer Overlay -->
+    <div id="mobile-overlay" class="mobile-drawer-overlay"></div>
 
     <script src="app.js"></script>
 </body>

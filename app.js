@@ -28,6 +28,25 @@ if (currentTheme) {
     if (currentTheme === 'light') document.getElementById('checkbox').checked = true;
 }
 
+// Mobile Toggle Logic
+const mobileToggle = document.getElementById('mobile-filter-toggle');
+const sidebar = document.querySelector('.sidebar');
+const mobileOverlay = document.getElementById('mobile-overlay');
+
+if (mobileToggle) {
+    mobileToggle.addEventListener('click', () => {
+        sidebar.classList.add('active');
+        mobileOverlay.classList.add('active');
+    });
+}
+
+if (mobileOverlay) {
+    mobileOverlay.addEventListener('click', () => {
+        sidebar.classList.remove('active');
+        mobileOverlay.classList.remove('active');
+    });
+}
+
 // Initialize application
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('--- Dashboard Initialization Start ---');
