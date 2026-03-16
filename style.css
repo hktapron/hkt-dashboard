@@ -494,7 +494,7 @@ input:checked + .slider::before { transform: translateX(22px); }
     inset: 0;
     background: rgba(0,0,0,0.8);
     backdrop-filter: blur(4px);
-    z-index: 998;
+    z-index: 2999;
     opacity: 0;
     transition: opacity 0.3s ease;
 }
@@ -509,18 +509,20 @@ input:checked + .slider::before { transform: translateX(22px); }
 
     .sidebar {
         position: fixed;
-        left: -100%;
+        left: 0;
         top: 0;
         bottom: 0;
-        width: 280px;
-        z-index: 999;
+        width: 300px;
+        z-index: 3000;
+        transform: translateX(-100%);
         transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         background: var(--bg-surface);
         box-shadow: 20px 0 50px rgba(0,0,0,0.5);
+        display: flex !important; /* Force display when active */
     }
 
     .sidebar.active {
-        transform: translateX(100%);
+        transform: translateX(0);
     }
 
     .mobile-drawer-overlay.active {
