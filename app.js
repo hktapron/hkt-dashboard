@@ -275,34 +275,34 @@ document.addEventListener('mousemove', e => {
     });
 });
 
-function renderDashboard(mode, filterValue, searchTerm = '') {
-    console.log(`Rendering Dashboard: Mode=${mode}, Value=${filterValue}`);
+// Robust Date Helper
+function getRecordDate(rawDate) {
+    if (!rawDate) return null;
+    const p = rawDate.split(/[/-]/).map(s => s.trim());
+    if (p.length < 3) return null;
     
-    const filterFunc = (r) => {
-        const rawD = r.Date || (r._raw && r._raw[0]) || '';
-        if (!rawD) return false;
-        
-        const p = rawD.split(/[/-]/);
-        if (p.length < 3) return false;
-        
-        // M/D/Y normalization
-        const m = p[0].trim().padStart(2, '0');
-        const d = p[1].trim().padStart(2, '0');
-        const yValue = p[2].trim();
-        const y = yValue.length === 2 ? `20${yValue}` : yValue;
-        
-        const recordIso = `${y}-${m}-${d}`;
-        const recordMonthKey = `${m}-${y}`;
+    // Auto-detect format: Expecting M/D/Y based on sheet audit
+    let m = p[0].padStart(2, '0');
+    let d = p[1].padStart(2, '0');
+    let y = p[2].length === 2 ? `20${p[2]}` : p[2];
+    
+    return { iso: `${y}-${m}-${d}`, monthKey: `${m}-${y}`, day: parseInt(d), month: parseInt(m), year: parseInt(y) };
+}
 
-        if (mode === 'daily') {
-            return recordIso === filterValue;
-        } else {
-            return recordMonthKey === filterValue;
-        }
-    };
+function renderDashboard(mode, filterValue, searchTerm = '') {
+    console.log(`[v2.2] Rendering: Mode=${mode}, Value=${filterValue}`);
+    
+    const fLogs = logsData.filter(r => {
+        const dObj = getRecordDate(r.Date || (r._raw && r._raw[0]));
+        if (!dObj) return false;
+        return mode === 'daily' ? dObj.iso === filterValue : dObj.monthKey === filterValue;
+    });
 
-    const fLogs = logsData.filter(filterFunc);
-    const fMaster = masterData.filter(filterFunc);
+    const fMaster = masterData.filter(r => {
+        const dObj = getRecordDate(r.Date || (r._raw && r._raw[0]));
+        if (!dObj) return false;
+        return mode === 'daily' ? dObj.iso === filterValue : dObj.monthKey === filterValue;
+    });
     
     const searchedLogs = fLogs.filter(r => 
         (r['Flight In'] || '').toLowerCase().includes(searchTerm) || 
@@ -314,7 +314,6 @@ function renderDashboard(mode, filterValue, searchTerm = '') {
     renderCharts(fLogs, fMaster, mode, filterValue);
     updateTable(searchedLogs);
     
-    // Toggle Visibility based on Mode
     const monthlyTrends = document.getElementById('monthly-trends-container');
     const logsSection = document.querySelector('.logs-section');
     if (mode === 'monthly') {
@@ -327,44 +326,30 @@ function renderDashboard(mode, filterValue, searchTerm = '') {
 }
 
 function updateMasterMetrics(data) {
-    if (!data || data.length === 0) {
-        console.warn('updateMasterMetrics: No data received');
-        document.getElementById('master-total-ac').textContent = '0';
-        document.getElementById('master-total-flights').textContent = '0';
-        document.getElementById('master-total-change').textContent = '0';
-        return;
-    }
-    console.log('--- KPI Data Audit ---', { rowCount: data.length, sampleRow: data[0]._raw });
+    const counts = { aircraft: data.length, flights: 0, changes: 0 };
     
-    const totalAc = data.length;
-    document.getElementById('master-total-ac').textContent = totalAc;
-    
-    let totalFlights = 0;
-    let totalChanges = 0;
-
     data.forEach(r => {
-        // Use raw indexes for 100% certainty: 3=FLIGHT, 5=FLIGHT_2
-        const f1 = (r._raw && r._raw[3] || '').trim().toLowerCase();
-        const f2 = (r._raw && r._raw[5] || '').trim().toLowerCase();
-        const isF = (v) => v !== '' && v !== '-' && v !== 'flight' && v !== 'callsign';
+        const raw = r._raw || [];
+        const f1 = (raw[3] || '').trim();
+        const f2 = (raw[5] || '').trim();
         
-        if (isF(f1)) totalFlights++;
-        if (isF(f2)) totalFlights++;
+        const isF = (v) => v && v.length > 1 && v !== '-' && !v.toLowerCase().includes('flight') && !v.toLowerCase().includes('callsign');
+        
+        if (isF(f1)) counts.flights++;
+        if (isF(f2)) counts.flights++;
 
-        // Changes: 9, 11, 13, 15, 17
-        const indices = [9, 11, 13, 15, 17];
-        indices.forEach(idx => {
-            const val = (r._raw && r._raw[idx] || '').trim();
-            if (isF(val)) totalChanges++;
+        // Changes check
+        [9, 11, 13, 15, 17].forEach(idx => {
+            const val = (raw[idx] || '').trim();
+            if (isF(val)) counts.changes++;
         });
     });
 
-    document.getElementById('master-total-flights').textContent = totalFlights;
-    document.getElementById('master-total-change').textContent = totalChanges;
+    document.getElementById('master-total-ac').textContent = counts.aircraft;
+    document.getElementById('master-total-flights').textContent = counts.flights;
+    document.getElementById('master-total-change').textContent = counts.changes;
     
-    const percent = totalAc > 0 ? ((totalChanges / totalAc) * 100).toFixed(1) : 0;
-    const trendEl = document.getElementById('master-change-percent');
-    if (trendEl) trendEl.textContent = `${percent}% of total scope`;
+    console.log(`[v2.2] KPI Audit for ${data.length} rows:`, counts);
 }
 
 function parseMasterDateTime(timeStr, obsDateStr, defaultTimeStr = null) {
@@ -623,46 +608,21 @@ function renderCharts(logs, master, mode, filterValue) {
         let day9Audit = { rows: 0, movements: 0, changes: 0 };
         
         master.forEach((r) => {
-            const rawDate = r.Date || (r._raw && r._raw[0]);
-            if (!rawDate) return;
+            const dObj = getRecordDate(r.Date || (r._raw && r._raw[0]));
+            if (!dObj || dObj.month !== filterMonth || dObj.year !== filterYear) return;
             
-            const p = rawDate.split(/[/-]/);
-            if (p.length < 3) return;
-            
-            const mm = parseInt(p[0]);
-            const dd = parseInt(p[1]);
-            const yy = parseInt(p[2]);
-            const fYY = yy < 100 ? (yy + 2000) : yy;
-
-            if (mm !== filterMonth || fYY !== filterYear) return;
-            
+            const dd = dObj.day;
             if (!trendData[dd]) trendData[dd] = { flights: 0, changes: 0 };
             
-            const isF = (v) => v && v.trim() !== '' && v.toLowerCase() !== 'flight' && v.toLowerCase() !== 'callsign' && v !== '-';
+            const isF = (v) => v && v.trim().length > 1 && v !== '-' && !v.toLowerCase().includes('flight') && !v.toLowerCase().includes('callsign');
             
-            // Redundant check: Try index and Property Key
-            const hasF1 = isF(r._raw && r._raw[3]) || isF(r['FLIGHT']);
-            const hasF2 = isF(r._raw && r._raw[5]) || isF(r['FLIGHT_2']);
-
-            if (hasF1) trendData[dd].flights++;
-            if (hasF2) trendData[dd].flights++;
+            const raw = r._raw || [];
+            if (isF(raw[3])) trendData[dd].flights++;
+            if (isF(raw[5])) trendData[dd].flights++;
             
-            // Monthly Changes
-            const cIdxs = [9, 11, 13, 15, 17];
-            let cFound = 0;
-            cIdxs.forEach(idx => {
-                const val = (r._raw && r._raw[idx] || '').trim();
-                if (isF(val)) {
-                    trendData[dd].changes++;
-                    cFound++;
-                }
+            [9, 11, 13, 15, 17].forEach(idx => {
+                if (isF(raw[idx])) trendData[dd].changes++;
             });
-
-            if (dd === 9) {
-                day9Audit.rows++;
-                day9Audit.movements += (hasF1 ? 1 : 0) + (hasF2 ? 1 : 0);
-                day9Audit.changes += cFound;
-            }
         });
 
         console.log('Day 9 Final Audit:', day9Audit);
