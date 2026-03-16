@@ -764,12 +764,12 @@ function initChart(id, type, data, options = {}) {
             scales: type !== 'doughnut' ? {
                 y: { 
                     grid: { color: gridColor }, 
-                    ticks: { color: textColor, font: { family: 'Inter Tight', size: 10, weight: 600 } }, 
+                    ticks: { color: textColor, font: { family: 'Manrope', size: 10, weight: 600 } }, 
                     border: { display: false } 
                 },
                 x: { 
                     grid: { display: false }, 
-                    ticks: { color: textColor, font: { family: 'Inter Tight', size: 10, weight: 600 } }, 
+                    ticks: { color: textColor, font: { family: 'Manrope', size: 10, weight: 600 } }, 
                     border: { display: false } 
                 }
             } : {},
