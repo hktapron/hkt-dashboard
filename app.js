@@ -482,24 +482,33 @@ function renderDashboard(mode, filterValue, searchTerm = '') {
         (r['Flight Out'] || '').toLowerCase().includes(searchTerm)
     );
 
-    updateMasterMetrics(fMaster);
+    updateMasterMetrics(fMaster, fLogs);
     updateFlowStats(fLogs);
     renderCharts(fLogs, fMaster, mode, filterValue);
     updateTable(searchedLogs);
+    updateDataCoverage(fMaster);
+    renderDelaySection(fMaster, mode, filterValue);
+    renderOTPSection(fMaster, mode, filterValue);
+    renderTurnaroundSection(fMaster);
+    renderTaxiTimeSection(fMaster);
     
     // Visibility Management
     const monthlyTrends = document.getElementById('monthly-trends-container');
     const logsSection = document.querySelector('.logs-section');
     const cardReasons = document.getElementById('card-reasons');
+    const cardFlow = document.getElementById('card-flow');
     const cardPeak = document.getElementById('card-peak');
     const cardUtil = document.getElementById('card-util');
+
+    const otpTrend = document.getElementById('card-otp-trend');
 
     if (mode === 'monthly') {
         if (monthlyTrends) monthlyTrends.style.display = 'contents';
         if (logsSection) logsSection.style.display = 'none';
+        if (otpTrend) otpTrend.style.display = 'block';
         
-        // Ensure all cards are visible in Monthly mode but with updated titles
-        if (cardReasons) cardReasons.style.display = 'block';
+        if (cardReasons) cardReasons.parentElement.style.display = 'grid';
+        if (cardFlow) cardFlow.style.display = 'block';
         if (cardPeak) {
             cardPeak.style.display = 'block';
             cardPeak.querySelector('.chart-title').textContent = 'Monthly Peak Hour Distribution';
@@ -511,7 +520,9 @@ function renderDashboard(mode, filterValue, searchTerm = '') {
     } else {
         if (monthlyTrends) monthlyTrends.style.display = 'none';
         if (logsSection) logsSection.style.display = 'block';
-        if (cardReasons) cardReasons.style.display = 'block';
+        if (otpTrend) otpTrend.style.display = 'none';
+        if (cardReasons) cardReasons.parentElement.style.display = 'grid';
+        if (cardFlow) cardFlow.style.display = 'block';
         if (cardPeak) {
             cardPeak.style.display = 'block';
             cardPeak.querySelector('.chart-title').textContent = 'Peak Hour Operations';
@@ -543,12 +554,16 @@ function renderCompareDashboard(scope, val1, val2) {
     // Hide daily/monthly specific elements, show charts only
     document.getElementById('monthly-trends-container').style.display = 'none';
     document.querySelector('.logs-section').style.display = 'none';
-    document.getElementById('card-reasons').style.display = 'none';
+    document.getElementById('card-reasons').parentElement.style.display = 'none';
     document.getElementById('card-peak').style.display = 'block';
     document.getElementById('card-util').style.display = 'block';
+    // Hide new analytics sections in compare mode
+    ['card-delay','card-otp','card-otp-trend','card-turnaround','card-taxi','card-flow'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
 
     // Update KPI for first target mainly or hide? Let's show Target A for now
-    updateMasterMetrics(master1);
+    updateMasterMetrics(master1, logs1);
     updateFlowStats(logs1);
 
     // Render Comparative Charts
@@ -626,14 +641,12 @@ function renderCompareCharts(scope, m1, m2, l1, l2, v1, v2) {
     }
 }
 
-function updateMasterMetrics(data) {
-    const counts = { aircraft: data.length, flights: 0, changes: 0 };
+function updateMasterMetrics(data, logs) {
+    const counts = { aircraft: data.length, flights: 0, changes: logs ? logs.length : 0 };
     data.forEach(r => {
         const raw = r._raw || [];
         if (isFlight(raw[3])) counts.flights++;
         if (isFlight(raw[5])) counts.flights++;
-        // Bay changes: use truthy check, NOT flight regex
-        [9, 11, 13, 15, 17].forEach(idx => { if ((raw[idx] || '').trim() !== '') counts.changes++; });
     });
     document.getElementById('master-total-ac').textContent = counts.aircraft;
     document.getElementById('master-total-flights').textContent = counts.flights;
@@ -811,10 +824,12 @@ function renderCharts(logs, master, mode, filterValue) {
     // Occupancy
     master.forEach(r => {
         const obsDateStr = r.Date || (r._raw && r._raw[0]);
+        const aibt = r['AIBT'] || '';
         const sibt = r['SIBT'] || (r._raw && r._raw[2]);
+        const effectiveTime = aibt || sibt;
         const type = classifyBay(getFinalBay(r));
         if (type === 'N/A') return;
-        const arr = parseMasterDateTime(sibt, obsDateStr);
+        const arr = parseMasterDateTime(effectiveTime, obsDateStr);
         if (arr) hourlyData[arr.getHours()][type === 'C' ? 'contact' : 'remote']++;
     });
 
@@ -983,6 +998,422 @@ function initChart(id, type, data, options = {}) {
             ...options 
         }
     });
+}
+
+// ============================================
+// NEW ANALYTICS FUNCTIONS (v5.0)
+// ============================================
+
+function getAirlineCode(flightStr) {
+    if (!flightStr) return null;
+    const clean = flightStr.trim();
+    const match = clean.match(/^([A-Z0-9]{2})\s*/i);
+    return match ? match[1].toUpperCase() : null;
+}
+
+function parseTimeWithDay(timeStr) {
+    if (!timeStr || typeof timeStr !== 'string') return null;
+    const [time, dayPart] = timeStr.trim().split('/');
+    const parts = time.split(/[:.]/);
+    if (parts.length < 2) return null;
+    const h = parseInt(parts[0]);
+    const m = parseInt(parts[1]);
+    if (isNaN(h) || isNaN(m)) return null;
+    const day = dayPart ? parseInt(dayPart) : 0;
+    return { hours: h, minutes: m, day: isNaN(day) ? 0 : day, totalMinutes: (isNaN(day) ? 0 : day) * 1440 + h * 60 + m };
+}
+
+function getDelayMinutes(actualStr, scheduledStr) {
+    const actual = parseTimeWithDay(actualStr);
+    const scheduled = parseTimeWithDay(scheduledStr);
+    if (!actual || !scheduled) return null;
+    let diff = actual.totalMinutes - scheduled.totalMinutes;
+    if (diff < -720) diff += 44640; // handle month wrap
+    if (diff > 1440) return null; // >24h seems wrong
+    return diff;
+}
+
+function updateDataCoverage(data) {
+    let tracked = 0, scheduled = 0;
+    data.forEach(r => {
+        const aibt = (r['AIBT'] || '').trim();
+        const aobt = (r['AOBT'] || '').trim();
+        if (aibt || aobt) tracked++;
+        else scheduled++;
+    });
+    const tEl = document.getElementById('dc-tracked');
+    const sEl = document.getElementById('dc-scheduled');
+    if (tEl) tEl.textContent = tracked;
+    if (sEl) sEl.textContent = scheduled;
+}
+
+function renderDelaySection(master, mode, filterValue) {
+    const delays = { arrival: [], departure: [] };
+    const airlineDelays = {};
+    
+    master.forEach(r => {
+        const flightIn = r['FLIGHT'] || (r._raw && r._raw[5]) || '';
+        const flightOut = r['FLIGHT_2'] || (r._raw && r._raw[7]) || '';
+        const aldt = (r['ALDT'] || '').trim();
+        const sibt = (r['SIBT'] || '').trim();
+        const atot = (r['ATOT'] || '').trim();
+        const sobt = (r['SOBT'] || '').trim();
+        
+        const airline = getAirlineCode(flightIn) || getAirlineCode(r['Callsign'] || '');
+        if (!airline) return;
+        
+        // Arrival delay = ALDT - SIBT
+        if (aldt && sibt) {
+            const d = getDelayMinutes(aldt, sibt);
+            if (d !== null) {
+                delays.arrival.push({ airline, delay: d, flight: flightIn });
+                if (!airlineDelays[airline]) airlineDelays[airline] = [];
+                airlineDelays[airline].push({ type: 'arr', delay: d });
+            }
+        }
+        
+        // Departure delay = ATOT - SOBT
+        if (atot && sobt) {
+            const d = getDelayMinutes(atot, sobt);
+            if (d !== null) {
+                delays.departure.push({ airline, delay: d, flight: flightOut });
+                if (!airlineDelays[airline]) airlineDelays[airline] = [];
+                airlineDelays[airline].push({ type: 'dep', delay: d });
+            }
+        }
+    });
+    
+    const allDelays = [...delays.arrival, ...delays.departure];
+    
+    // Delay Distribution (>15min = delayed)
+    let onTime = 0, under15 = 0, under30 = 0, over30 = 0;
+    allDelays.forEach(d => {
+        if (d.delay <= 15) onTime++;
+        else if (d.delay <= 30) under30++;
+        else over30++;
+    });
+    
+    const distLabels = ['On-Time (≤15m)', '16-30 min', '>30 min'];
+    const distData = [onTime, under30, over30];
+    const distColors = ['#00ff9d', '#f59e0b', '#ef4444'];
+    
+    initChart('delayDistChart', 'doughnut', {
+        labels: distLabels,
+        datasets: [{ data: distData, backgroundColor: distColors, borderWidth: 0 }]
+    }, { plugins: { legend: { display: true, position: 'bottom', labels: { color: '#8a8f98', font: { size: 10 }, boxWidth: 10 } } }, cutout: '65%', maintainAspectRatio: true, aspectRatio: 1.2 });
+    
+    // Top 10 delayed airlines (avg delay for flights >15min only)
+    const airlineAvg = {};
+    Object.entries(airlineDelays).forEach(([code, arr]) => {
+        const delayed = arr.filter(x => x.delay > 15);
+        if (delayed.length > 0) {
+            airlineAvg[code] = { avg: delayed.reduce((s, x) => s + x.delay, 0) / delayed.length, count: delayed.length };
+        }
+    });
+    
+    const top10 = Object.entries(airlineAvg).sort((a, b) => b[1].avg - a[1].avg).slice(0, 10);
+    const listEl = document.getElementById('top-delay-list');
+    if (listEl) {
+        if (top10.length === 0) {
+            listEl.innerHTML = '<div style="color:var(--text-dim); font-size:0.8rem; padding:8px;">No delay data available (ALDT/ATOT required)</div>';
+        } else {
+            listEl.innerHTML = '<div style="font-size:0.7rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px;">Top Delayed Airlines</div>' +
+                top10.map(([code, d], i) => `<div class="delay-rank-item"><div class="rank-num">${i + 1}</div><div class="rank-info"><span class="rank-airline">${code}</span><span class="rank-delay">${Math.round(d.avg)}m avg (${d.count})</span></div></div>`).join('');
+        }
+    }
+    
+    // Avg delay per airline bar chart (all airlines with delays >15min)
+    const sortedAirlines = Object.entries(airlineAvg).sort((a, b) => b[1].avg - a[1].avg).slice(0, 15);
+    initChart('avgDelayChart', 'bar', {
+        labels: sortedAirlines.map(a => a[0]),
+        datasets: [{
+            label: 'Avg Delay (min)',
+            data: sortedAirlines.map(a => Math.round(a[1].avg)),
+            backgroundColor: sortedAirlines.map(a => a[1].avg > 30 ? '#ef4444' : '#f59e0b'),
+            borderRadius: 4
+        }]
+    }, { indexAxis: 'y', scales: { x: { beginAtZero: true, title: { display: true, text: 'Minutes', color: '#8a8f98', font: { size: 10 } } } } });
+}
+
+function renderOTPSection(master, mode, filterValue) {
+    const airlineOTP = {};
+    const timeslotOTP = {};
+    
+    master.forEach(r => {
+        const flightIn = r['FLIGHT'] || (r._raw && r._raw[5]) || '';
+        const airline = getAirlineCode(flightIn) || getAirlineCode(r['Callsign'] || '');
+        if (!airline) return;
+        
+        const aldt = (r['ALDT'] || '').trim();
+        const sibt = (r['SIBT'] || '').trim();
+        const atot = (r['ATOT'] || '').trim();
+        const sobt = (r['SOBT'] || '').trim();
+        
+        // Use effective arrival time for timeslot
+        const effectiveArr = aldt || sibt;
+        const tp = parseTimeWithDay(effectiveArr);
+        const hour = tp ? tp.hours : null;
+        
+        // Arrival OTP
+        if (aldt && sibt) {
+            const d = getDelayMinutes(aldt, sibt);
+            if (d !== null) {
+                if (!airlineOTP[airline]) airlineOTP[airline] = { onTime: 0, total: 0 };
+                airlineOTP[airline].total++;
+                if (d <= 15) airlineOTP[airline].onTime++;
+                
+                if (hour !== null) {
+                    const slot = `${String(hour).padStart(2, '0')}:00`;
+                    if (!timeslotOTP[slot]) timeslotOTP[slot] = { onTime: 0, total: 0 };
+                    timeslotOTP[slot].total++;
+                    if (d <= 15) timeslotOTP[slot].onTime++;
+                }
+            }
+        }
+        
+        // Departure OTP
+        if (atot && sobt) {
+            const d = getDelayMinutes(atot, sobt);
+            if (d !== null) {
+                if (!airlineOTP[airline]) airlineOTP[airline] = { onTime: 0, total: 0 };
+                airlineOTP[airline].total++;
+                if (d <= 15) airlineOTP[airline].onTime++;
+            }
+        }
+    });
+    
+    // OTP per airline (horizontal bar)
+    const sortedOTP = Object.entries(airlineOTP)
+        .map(([code, d]) => ({ code, rate: d.total > 0 ? (d.onTime / d.total * 100) : 0, total: d.total }))
+        .filter(x => x.total >= 2)
+        .sort((a, b) => a.rate - b.rate)
+        .slice(0, 15);
+    
+    initChart('otpAirlineChart', 'bar', {
+        labels: sortedOTP.map(x => `${x.code} (${x.total})`),
+        datasets: [{
+            label: 'OTP %',
+            data: sortedOTP.map(x => Math.round(x.rate)),
+            backgroundColor: sortedOTP.map(x => x.rate >= 80 ? '#00ff9d' : x.rate >= 50 ? '#f59e0b' : '#ef4444'),
+            borderRadius: 4
+        }]
+    }, {
+        indexAxis: 'y',
+        scales: { x: { beginAtZero: true, max: 100, title: { display: true, text: 'OTP %', color: '#8a8f98', font: { size: 10 } } } },
+        plugins: { legend: { display: false }, title: { display: true, text: 'OTP Rate per Airline', color: '#8a8f98', font: { size: 11 } } }
+    });
+    
+    // OTP per timeslot
+    const slots = Object.entries(timeslotOTP).sort((a, b) => a[0].localeCompare(b[0]));
+    initChart('otpTimeslotChart', 'bar', {
+        labels: slots.map(s => s[0]),
+        datasets: [{
+            label: 'OTP %',
+            data: slots.map(s => s[1].total > 0 ? Math.round(s[1].onTime / s[1].total * 100) : 0),
+            backgroundColor: slots.map(s => {
+                const rate = s[1].total > 0 ? s[1].onTime / s[1].total * 100 : 100;
+                return rate >= 80 ? '#00ff9d' : rate >= 50 ? '#f59e0b' : '#ef4444';
+            }),
+            borderRadius: 4
+        }]
+    }, {
+        scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: '%', color: '#8a8f98', font: { size: 10 } } } },
+        plugins: { legend: { display: false }, title: { display: true, text: 'OTP Rate per Time Slot', color: '#8a8f98', font: { size: 11 } } }
+    });
+    
+    // Monthly OTP Trend
+    if (mode === 'monthly') {
+        const [fMonth, fYear] = filterValue.split('-').map(Number);
+        const dailyOTP = {};
+        master.forEach(r => {
+            const dObj = getRecordDate(r.Date || (r._raw && r._raw[0]));
+            if (!dObj || dObj.month !== fMonth || dObj.year !== fYear) return;
+            const aldt = (r['ALDT'] || '').trim();
+            const sibt = (r['SIBT'] || '').trim();
+            if (!aldt || !sibt) return;
+            const d = getDelayMinutes(aldt, sibt);
+            if (d === null) return;
+            if (!dailyOTP[dObj.day]) dailyOTP[dObj.day] = { onTime: 0, total: 0 };
+            dailyOTP[dObj.day].total++;
+            if (d <= 15) dailyOTP[dObj.day].onTime++;
+        });
+        const days = Object.keys(dailyOTP).sort((a, b) => Number(a) - Number(b));
+        initChart('otpTrendChart', 'line', {
+            labels: days,
+            datasets: [{
+                label: 'OTP %',
+                data: days.map(d => dailyOTP[d].total > 0 ? Math.round(dailyOTP[d].onTime / dailyOTP[d].total * 100) : 0),
+                borderColor: '#00f2ff', backgroundColor: 'rgba(0,242,255,0.1)', fill: true, tension: 0.4
+            }]
+        }, { scales: { y: { beginAtZero: true, max: 100 } } });
+    }
+}
+
+function renderTurnaroundSection(master) {
+    const dropdown = document.getElementById('turnaround-airline');
+    const statsEl = document.getElementById('turnaround-stats');
+    if (!dropdown) return;
+    
+    // Collect all turnarounds
+    const allTurnarounds = [];
+    const airlines = new Set();
+    
+    master.forEach(r => {
+        const flightIn = r['FLIGHT'] || (r._raw && r._raw[5]) || '';
+        const airline = getAirlineCode(flightIn) || getAirlineCode(r['Callsign'] || '');
+        if (!airline) return;
+        airlines.add(airline);
+        
+        const aibt = (r['AIBT'] || '').trim();
+        const aobt = (r['AOBT'] || '').trim();
+        const sibt = (r['SIBT'] || '').trim();
+        const sobt = (r['SOBT'] || '').trim();
+        
+        const arrTime = aibt || sibt;
+        const depTime = aobt || sobt;
+        if (!arrTime || !depTime) return;
+        
+        const ta = parseTimeWithDay(arrTime);
+        const td = parseTimeWithDay(depTime);
+        if (!ta || !td) return;
+        
+        let ground = td.totalMinutes - ta.totalMinutes;
+        if (ground < 0) ground += 1440;
+        if (ground > 1440) return; // Skip overnight > 24h
+        
+        allTurnarounds.push({ airline, ground, isActual: !!(aibt && aobt) });
+    });
+    
+    // Populate dropdown
+    const sortedAirlines = [...airlines].sort();
+    const currentVal = dropdown.value;
+    dropdown.innerHTML = '<option value="all">All Airlines</option>' + sortedAirlines.map(a => `<option value="${a}">${a}</option>`).join('');
+    if (sortedAirlines.includes(currentVal)) dropdown.value = currentVal;
+    
+    const renderTurnaround = () => {
+        const selected = dropdown.value;
+        const filtered = selected === 'all' ? allTurnarounds : allTurnarounds.filter(t => t.airline === selected);
+        
+        if (filtered.length === 0) {
+            if (statsEl) statsEl.innerHTML = '<span style="color:var(--text-dim); font-size:0.8rem;">No data</span>';
+            initChart('turnaroundChart', 'bar', { labels: [], datasets: [] });
+            return;
+        }
+        
+        const times = filtered.map(t => t.ground);
+        const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+        const min = Math.min(...times);
+        const max = Math.max(...times);
+        
+        if (statsEl) {
+            statsEl.innerHTML = `
+                <div class="stat-pill"><span class="stat-label">Avg</span><span class="stat-value">${avg}m</span></div>
+                <div class="stat-pill"><span class="stat-label">Min</span><span class="stat-value">${min}m</span></div>
+                <div class="stat-pill"><span class="stat-label">Max</span><span class="stat-value">${max}m</span></div>
+                <div class="stat-pill"><span class="stat-label">Flights</span><span class="stat-value">${filtered.length}</span></div>
+            `;
+        }
+        
+        // Histogram by 15-min buckets
+        const buckets = {};
+        times.forEach(t => {
+            const b = Math.floor(t / 15) * 15;
+            const label = `${b}-${b + 15}m`;
+            buckets[label] = (buckets[label] || 0) + 1;
+        });
+        const bLabels = Object.keys(buckets).sort((a, b) => parseInt(a) - parseInt(b));
+        
+        initChart('turnaroundChart', 'bar', {
+            labels: bLabels,
+            datasets: [{
+                label: 'Flights',
+                data: bLabels.map(l => buckets[l]),
+                backgroundColor: '#00f2ff',
+                borderRadius: 4
+            }]
+        }, { scales: { y: { beginAtZero: true } } });
+    };
+    
+    dropdown.onchange = renderTurnaround;
+    renderTurnaround();
+}
+
+function renderTaxiTimeSection(master) {
+    const statsEl = document.getElementById('taxi-stats');
+    const taxiIn = [], taxiOut = [];
+    const hourlyTaxi = {};
+    
+    master.forEach(r => {
+        const aldt = (r['ALDT'] || '').trim();
+        const aibt = (r['AIBT'] || '').trim();
+        const aobt = (r['AOBT'] || '').trim();
+        const atot = (r['ATOT'] || '').trim();
+        const sibt = (r['SIBT'] || '').trim();
+        
+        // Taxi-In = AIBT - ALDT
+        if (aibt && aldt) {
+            const d = getDelayMinutes(aibt, aldt);
+            if (d !== null && d >= 0 && d < 60) {
+                taxiIn.push(d);
+                const tp = parseTimeWithDay(aldt);
+                if (tp) {
+                    const h = `${String(tp.hours).padStart(2, '0')}:00`;
+                    if (!hourlyTaxi[h]) hourlyTaxi[h] = { in: [], out: [] };
+                    hourlyTaxi[h].in.push(d);
+                }
+            }
+        }
+        
+        // Taxi-Out = ATOT - AOBT
+        if (atot && aobt) {
+            const d = getDelayMinutes(atot, aobt);
+            if (d !== null && d >= 0 && d < 60) {
+                taxiOut.push(d);
+                const tp = parseTimeWithDay(aobt);
+                if (tp) {
+                    const h = `${String(tp.hours).padStart(2, '0')}:00`;
+                    if (!hourlyTaxi[h]) hourlyTaxi[h] = { in: [], out: [] };
+                    hourlyTaxi[h].out.push(d);
+                }
+            }
+        }
+    });
+    
+    const avgIn = taxiIn.length > 0 ? Math.round(taxiIn.reduce((a, b) => a + b, 0) / taxiIn.length) : '-';
+    const avgOut = taxiOut.length > 0 ? Math.round(taxiOut.reduce((a, b) => a + b, 0) / taxiOut.length) : '-';
+    
+    if (statsEl) {
+        statsEl.innerHTML = `
+            <div class="stat-pill"><span class="stat-label">Avg Taxi-In</span><span class="stat-value" style="color:#00f2ff;">${avgIn}m</span></div>
+            <div class="stat-pill"><span class="stat-label">Avg Taxi-Out</span><span class="stat-value" style="color:#7000ff;">${avgOut}m</span></div>
+            <div class="stat-pill"><span class="stat-label">Samples In</span><span class="stat-value">${taxiIn.length}</span></div>
+            <div class="stat-pill"><span class="stat-label">Samples Out</span><span class="stat-value">${taxiOut.length}</span></div>
+        `;
+    }
+    
+    const hours = Object.keys(hourlyTaxi).sort();
+    if (hours.length === 0) {
+        initChart('taxiChart', 'bar', { labels: ['No Data'], datasets: [{ label: 'Taxi-In', data: [0] }] });
+        return;
+    }
+    
+    initChart('taxiChart', 'bar', {
+        labels: hours,
+        datasets: [
+            {
+                label: 'Avg Taxi-In (min)',
+                data: hours.map(h => hourlyTaxi[h].in.length > 0 ? Math.round(hourlyTaxi[h].in.reduce((a, b) => a + b, 0) / hourlyTaxi[h].in.length) : 0),
+                backgroundColor: '#00f2ff',
+                borderRadius: 4
+            },
+            {
+                label: 'Avg Taxi-Out (min)',
+                data: hours.map(h => hourlyTaxi[h].out.length > 0 ? Math.round(hourlyTaxi[h].out.reduce((a, b) => a + b, 0) / hourlyTaxi[h].out.length) : 0),
+                backgroundColor: '#7000ff',
+                borderRadius: 4
+            }
+        ]
+    }, { scales: { y: { beginAtZero: true, title: { display: true, text: 'Minutes', color: '#8a8f98', font: { size: 10 } } } } });
 }
 
 function hideLoader() {

@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Outfit:wght@800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=4.3">
+    <link rel="stylesheet" href="style.css?v=5.0">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -85,13 +85,11 @@
                 <div class="header-title">
                     <h1>HKT Apron Analytics & Optimization</h1>
                 </div>
-                <div class="date-picker-container">
-                    <!-- Controlled via Sidebar -->
-                </div>
+                <div class="date-picker-container"></div>
             </header>
 
             <div class="bento-grid">
-                <!-- TOP ROW: KPIs + FLOW (Each span 3, span 3) -->
+                <!-- ROW 1: KPIs -->
                 <div class="card-glass kpi-cell" style="grid-column: span 3; grid-row: span 3; padding: 12px;">
                     <div class="kpi-header" style="margin-bottom: 4px;">
                         <div class="kpi-icon violet" style="width: 24px; height: 24px; padding: 4px;">
@@ -122,33 +120,23 @@
                     <div class="kpi-value" id="master-total-change" style="font-size: 1.6rem;">0</div>
                 </div>
 
-                <!-- NEW: Flow Dynamics integrated into Row 1 -->
+                <!-- Data Coverage KPI (replaced Flow Dynamics) -->
                 <div class="card-glass kpi-cell" style="grid-column: span 3; grid-row: span 3; padding: 12px;">
                     <div class="kpi-header" style="margin-bottom: 6px;">
-                        <div class="kpi-label" style="font-size: 0.7rem;">Flow Dynamics</div>
+                        <div class="kpi-icon" style="width: 24px; height: 24px; padding: 4px; background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                        </div>
+                        <div class="kpi-label" style="font-size: 0.7rem;">Data Coverage</div>
                     </div>
-                    <div class="flow-mini-list" style="display: grid; grid-template-columns: 1fr; gap: 4px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span style="color:var(--text-muted); font-weight:500;">Remote → Contact</span><span id="flow-r-c" style="font-weight:800; font-size:1.1rem; color:var(--primary);">0</span></div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span style="color:var(--text-muted); font-weight:500;">Contact → Remote</span><span id="flow-c-r" style="font-weight:800; font-size:1.1rem; color:var(--primary);">0</span></div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span style="color:var(--text-muted); font-weight:500;">Contact → Contact</span><span id="flow-c-c" style="font-weight:800; font-size:1.1rem; color:var(--primary);">0</span></div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span style="color:var(--text-muted); font-weight:500;">Remote → Remote</span><span id="flow-r-r" style="font-weight:800; font-size:1.1rem; color:var(--primary);">0</span></div>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 4px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span style="color:var(--text-muted); font-weight:500;">Tracked (Actual)</span><span id="dc-tracked" style="font-weight:800; font-size:1.1rem; color:var(--accent);">0</span></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span style="color:var(--text-muted); font-weight:500;">Scheduled Only</span><span id="dc-scheduled" style="font-weight:800; font-size:1.1rem; color:var(--text-dim);">0</span></div>
                     </div>
                 </div>
 
-                <!-- ROW 2: Bay Change Reasons -->
-                <div id="card-reasons" class="card-glass span-12" style="grid-row: span 4; height: auto;">
-                    <h3 class="chart-title">Bay Change Reasons</h3>
-                    <div class="reasons-container" style="margin-top: 4px; gap: 16px;">
-                        <div style="flex: 1; min-width: 200px;">
-                            <canvas id="reasonsChart" style="max-height: 150px;"></canvas>
-                        </div>
-                        <div id="top-reasons-list" class="reasons-grid" style="flex: 2; gap: 4px;">
-                            <!-- Reasons will pop here -->
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Row 3: Hourly Traffic Analysis -->
+
+                <!-- Row 3: Peak Hour -->
                 <div id="card-peak" class="card-glass span-12" style="grid-row: span 6;">
                     <h3 class="chart-title">Peak Hour Operations</h3>
                     <div class="chart-inner" style="height: 280px;"><canvas id="peakHourChart"></canvas></div>
@@ -160,7 +148,7 @@
                     <div class="chart-inner" style="height: 280px;"><canvas id="utilizationChart"></canvas></div>
                 </div>
 
-                <!-- NEW: Monthly Trend Charts (Visible only in Monthly mode) -->
+                <!-- Monthly Trend Charts -->
                 <div id="monthly-trends-container" class="span-12" style="grid-column: span 12; display: none;">
                     <div class="card-glass span-12" style="grid-row: span 6;">
                         <h3 class="chart-title">Monthly Flights</h3>
@@ -169,6 +157,80 @@
                     <div class="card-glass span-12" style="grid-row: span 6;">
                         <h3 class="chart-title">Monthly Total Bay Changes</h3>
                         <div class="chart-inner" style="height: 280px;"><canvas id="monthlyChangesChart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Delay Analysis -->
+                <div id="card-delay" class="card-glass span-12" style="grid-row: span 6;">
+                    <h3 class="chart-title">✈ Delay Analysis <span id="delay-threshold-note" style="font-size:0.7rem; color:var(--text-dim); font-weight:400;">(On-Time ≤ 15 min)</span></h3>
+                    <div class="delay-layout" style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px;">
+                        <div style="flex: 1; min-width: 180px; max-width: 240px;">
+                            <canvas id="delayDistChart" style="max-height: 180px;"></canvas>
+                        </div>
+                        <div id="top-delay-list" style="flex: 1; min-width: 250px;"></div>
+                        <div style="flex: 2; min-width: 300px;">
+                            <div class="chart-inner" style="height: 200px;"><canvas id="avgDelayChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OTP Scorecard -->
+                <div id="card-otp" class="card-glass span-12" style="grid-row: span 6;">
+                    <h3 class="chart-title">📊 OTP Scorecard</h3>
+                    <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px;">
+                        <div style="flex: 1; min-width: 300px;">
+                            <div class="chart-inner" style="height: 260px;"><canvas id="otpAirlineChart"></canvas></div>
+                        </div>
+                        <div style="flex: 1; min-width: 300px;">
+                            <div class="chart-inner" style="height: 260px;"><canvas id="otpTimeslotChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly OTP Trend -->
+                <div id="card-otp-trend" class="card-glass span-12" style="grid-row: span 6; display: none;">
+                    <h3 class="chart-title">Monthly OTP Trend</h3>
+                    <div class="chart-inner" style="height: 280px;"><canvas id="otpTrendChart"></canvas></div>
+                </div>
+
+                <!-- Turnaround Time -->
+                <div id="card-turnaround" class="card-glass span-12" style="grid-row: span 6;">
+                    <h3 class="chart-title">⏱ Turnaround Time Analysis</h3>
+                    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap;">
+                        <select id="turnaround-airline" class="glass-input" style="max-width: 200px; padding: 8px 12px; font-size: 0.85rem;">
+                            <option value="all">All Airlines</option>
+                        </select>
+                        <div id="turnaround-stats" style="display: flex; gap: 16px; font-size: 0.8rem; flex-wrap: wrap;"></div>
+                    </div>
+                    <div class="chart-inner" style="height: 250px;"><canvas id="turnaroundChart"></canvas></div>
+                </div>
+
+                <!-- Taxi Time -->
+                <div id="card-taxi" class="card-glass span-12" style="grid-row: span 6;">
+                    <h3 class="chart-title">🛬 Taxi Time Analysis</h3>
+                    <div id="taxi-stats" style="display: flex; gap: 24px; margin-bottom: 12px; flex-wrap: wrap;"></div>
+                    <div class="chart-inner" style="height: 250px;"><canvas id="taxiChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Bay Change Reasons + Flow Dynamics -->
+            <div style="display: grid; grid-template-columns: 8fr 4fr; gap: 16px; margin-bottom: 20px;">
+                <div id="card-reasons" class="card-glass" style="height: auto;">
+                    <h3 class="chart-title">Bay Change Reasons</h3>
+                    <div class="reasons-container" style="margin-top: 4px; gap: 16px;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <canvas id="reasonsChart" style="max-height: 150px;"></canvas>
+                        </div>
+                        <div id="top-reasons-list" class="reasons-grid" style="flex: 2; gap: 4px;"></div>
+                    </div>
+                </div>
+                <div id="card-flow" class="card-glass">
+                    <h3 class="chart-title">Flow Dynamics</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span style="color:var(--text-muted); font-weight:500;">Remote → Contact</span><span id="flow-r-c" style="font-weight:800; font-size:1.1rem; color:var(--primary);">0</span></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span style="color:var(--text-muted); font-weight:500;">Contact → Remote</span><span id="flow-c-r" style="font-weight:800; font-size:1.1rem; color:var(--primary);">0</span></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span style="color:var(--text-muted); font-weight:500;">Contact → Contact</span><span id="flow-c-c" style="font-weight:800; font-size:1.1rem; color:var(--primary);">0</span></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span style="color:var(--text-muted); font-weight:500;">Remote → Remote</span><span id="flow-r-r" style="font-weight:800; font-size:1.1rem; color:var(--primary);">0</span></div>
                     </div>
                 </div>
             </div>
@@ -241,6 +303,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=4.3"></script>
+    <script src="app.js?v=5.0"></script>
 </body>
 </html>
