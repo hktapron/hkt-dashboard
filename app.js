@@ -1070,7 +1070,7 @@ function renderDelaySection(master, mode, filterValue) {
         const atot = (r['ATOT'] || '').trim();
         const sobt = (r['SOBT'] || '').trim();
         
-        const airline = getAirlineCode(flightIn) || getAirlineCode(r['Callsign'] || '');
+        const airline = getAirlineCode(flightIn) || getAirlineCode(flightOut) || getAirlineCode(r['Callsign'] || '');
         if (!airline) return;
         
         // Arrival delay = ALDT - SIBT
@@ -1118,7 +1118,13 @@ function renderDelaySection(master, mode, filterValue) {
     Object.entries(airlineDelays).forEach(([code, arr]) => {
         const delayed = arr.filter(x => x.delay > 15);
         if (delayed.length > 0) {
-            airlineAvg[code] = { avg: delayed.reduce((s, x) => s + x.delay, 0) / delayed.length, count: delayed.length };
+            const flightSet = new Set(delayed.map(x => x.flight).filter(f => f));
+            const flightList = Array.from(flightSet).join(', ');
+            airlineAvg[code] = { 
+                avg: delayed.reduce((s, x) => s + x.delay, 0) / delayed.length, 
+                count: delayed.length,
+                flights: flightList
+            };
         }
     });
     
@@ -1129,7 +1135,7 @@ function renderDelaySection(master, mode, filterValue) {
             listEl.innerHTML = '<div style="color:var(--text-dim); font-size:0.8rem; padding:8px;">No delay data available (ALDT/ATOT required)</div>';
         } else {
             listEl.innerHTML = '<div style="font-size:0.7rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px;">Top Delayed Airlines</div>' +
-                top10.map(([code, d], i) => `<div class="delay-rank-item"><div class="rank-num">${i + 1}</div><div class="rank-info"><span class="rank-airline">${code}</span><span class="rank-delay">${Math.round(d.avg)}m avg (${d.count})</span></div></div>`).join('');
+                top10.map(([code, d], i) => `<div class="delay-rank-item"><div class="rank-num">${i + 1}</div><div class="rank-info"><span class="rank-airline">${code} <span style="font-size:0.6rem; color:var(--text-dim); font-weight:400;">(${d.flights})</span></span><span class="rank-delay">${Math.round(d.avg)}m avg</span></div></div>`).join('');
         }
     }
     
@@ -1197,7 +1203,7 @@ function renderOTPSection(master, mode, filterValue) {
     const sortedOTP = Object.entries(airlineOTP)
         .map(([code, d]) => ({ code, rate: d.total > 0 ? (d.onTime / d.total * 100) : 0, total: d.total }))
         .filter(x => x.total >= 2)
-        .sort((a, b) => a.rate - b.rate)
+        .sort((a, b) => b.rate - a.rate || b.total - a.total)
         .slice(0, 15);
     
     initChart('otpAirlineChart', 'bar', {
