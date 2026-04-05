@@ -645,8 +645,10 @@ function updateMasterMetrics(data, logs) {
     const counts = { aircraft: data.length, flights: 0, changes: 0 };
     data.forEach(r => {
         const raw = r._raw || [];
-        if (isFlight(raw[3])) counts.flights++;
-        if (isFlight(raw[5])) counts.flights++;
+        const flightIn = r['FLIGHT'] || '';
+        const flightOut = r['FLIGHT_2'] || '';
+        if (isFlight(flightIn)) counts.flights++;
+        if (isFlight(flightOut)) counts.flights++;
     });
     // Count bay changes from logs - Bay History at indices 13, 17, 21, 25...
     if (logs) {
@@ -1016,7 +1018,7 @@ function initChart(id, type, data, options = {}) {
 function getAirlineCode(flightStr) {
     if (!flightStr) return null;
     const clean = flightStr.trim();
-    const match = clean.match(/^([A-Z0-9]{2})\s*/i);
+    const match = clean.match(/^([A-Z0-9]{2})\s*\d+/i);
     return match ? match[1].toUpperCase() : null;
 }
 
@@ -1061,8 +1063,8 @@ function renderDelaySection(master, mode, filterValue) {
     const airlineDelays = {};
     
     master.forEach(r => {
-        const flightIn = r['FLIGHT'] || (r._raw && r._raw[5]) || '';
-        const flightOut = r['FLIGHT_2'] || (r._raw && r._raw[7]) || '';
+        const flightIn = r['FLIGHT'] || '';
+        const flightOut = r['FLIGHT_2'] || '';
         const aldt = (r['ALDT'] || '').trim();
         const sibt = (r['SIBT'] || '').trim();
         const atot = (r['ATOT'] || '').trim();
@@ -1134,7 +1136,7 @@ function renderDelaySection(master, mode, filterValue) {
     // Avg delay per airline bar chart (all airlines with delays >15min)
     const sortedAirlines = Object.entries(airlineAvg).sort((a, b) => b[1].avg - a[1].avg).slice(0, 15);
     initChart('avgDelayChart', 'bar', {
-        labels: sortedAirlines.map(a => a[0]),
+        labels: sortedAirlines.map(a => `${a[0]} (${a[1].count})`),
         datasets: [{
             label: 'Avg Delay (min)',
             data: sortedAirlines.map(a => Math.round(a[1].avg)),
@@ -1149,7 +1151,7 @@ function renderOTPSection(master, mode, filterValue) {
     const timeslotOTP = {};
     
     master.forEach(r => {
-        const flightIn = r['FLIGHT'] || (r._raw && r._raw[5]) || '';
+        const flightIn = r['FLIGHT'] || '';
         const airline = getAirlineCode(flightIn) || getAirlineCode(r['Callsign'] || '');
         if (!airline) return;
         
@@ -1268,7 +1270,7 @@ function renderTurnaroundSection(master) {
     const airlines = new Set();
     
     master.forEach(r => {
-        const flightIn = r['FLIGHT'] || (r._raw && r._raw[5]) || '';
+        const flightIn = r['FLIGHT'] || '';
         const airline = getAirlineCode(flightIn) || getAirlineCode(r['Callsign'] || '');
         if (!airline) return;
         airlines.add(airline);
