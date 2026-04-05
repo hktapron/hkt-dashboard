@@ -165,10 +165,12 @@
                 <div id="card-delay" class="card-glass span-12" style="grid-row: span 6; display: flex; flex-direction: column;">
                     <h3 class="chart-title">✈ Delay Analysis <span id="delay-threshold-note" style="font-size:0.7rem; color:var(--text-dim); font-weight:400;">(On-Time ≤ 15 min)</span></h3>
                     <div class="delay-layout" style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; flex: 1; align-items: stretch;">
-                        <div style="flex: 1; min-width: 180px; max-width: 240px; display: flex; flex-direction: column; justify-content: center;">
-                            <canvas id="delayDistChart" style="max-height: 100%;"></canvas>
+                        <div style="flex: 0 0 200px; display: flex; align-items: center; justify-content: center;">
+                            <div style="width: 100%; height: 200px;"><canvas id="delayDistChart"></canvas></div>
                         </div>
-                        <div id="top-delay-list" style="flex: 1; min-width: 250px; overflow-y: auto; padding-right: 8px;"></div>
+                        <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column;">
+                            <div id="top-delay-list" style="flex: 1; min-height: 0; max-height: 220px; overflow-y: auto; padding-right: 8px;"></div>
+                        </div>
                         <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column;">
                             <div class="chart-inner" style="flex: 1; min-height: 200px;"><canvas id="avgDelayChart"></canvas></div>
                         </div>

@@ -1111,7 +1111,7 @@ function renderDelaySection(master, mode, filterValue) {
     initChart('delayDistChart', 'doughnut', {
         labels: distLabels,
         datasets: [{ data: distData, backgroundColor: distColors, borderWidth: 0 }]
-    }, { plugins: { legend: { display: true, position: 'bottom', labels: { color: '#8a8f98', font: { size: 10 }, boxWidth: 10 } } }, cutout: '65%', maintainAspectRatio: true, aspectRatio: 1.2 });
+    }, { plugins: { legend: { display: true, position: 'bottom', labels: { color: '#8a8f98', font: { size: 10 }, boxWidth: 10 } } }, cutout: '65%', maintainAspectRatio: false });
     
     // Top 10 delayed airlines (avg delay for flights >15min only)
     const airlineAvg = {};
