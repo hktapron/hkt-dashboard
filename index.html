@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Outfit:wght@800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=5.1">
+    <link rel="stylesheet" href="style.css?v=5.2">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -161,21 +161,21 @@
                 </div>
 
                 <!-- Delay Analysis -->
-                <div id="card-delay" class="card-glass span-12" style="grid-row: span 6;">
+                <div id="card-delay" class="card-glass span-12" style="grid-row: span 8;">
                     <h3 class="chart-title">✈ Delay Analysis <span id="delay-threshold-note" style="font-size:0.7rem; color:var(--text-dim); font-weight:400;">(On-Time ≤ 15 min)</span></h3>
                     <div class="delay-layout" style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px;">
                         <div style="flex: 1; min-width: 180px; max-width: 240px;">
-                            <canvas id="delayDistChart" style="max-height: 180px;"></canvas>
+                            <canvas id="delayDistChart" style="max-height: 260px;"></canvas>
                         </div>
-                        <div id="top-delay-list" style="flex: 1; min-width: 250px;"></div>
+                        <div id="top-delay-list" style="flex: 1; min-width: 250px; max-height: 260px; overflow-y: auto; padding-right: 8px;"></div>
                         <div style="flex: 2; min-width: 300px;">
-                            <div class="chart-inner" style="height: 200px;"><canvas id="avgDelayChart"></canvas></div>
+                            <div class="chart-inner" style="height: 260px;"><canvas id="avgDelayChart"></canvas></div>
                         </div>
                     </div>
                 </div>
 
                 <!-- OTP Scorecard -->
-                <div id="card-otp" class="card-glass span-12" style="grid-row: span 6;">
+                <div id="card-otp" class="card-glass span-12" style="grid-row: span 8;">
                     <h3 class="chart-title">📊 OTP Scorecard</h3>
                     <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px;">
                         <div style="flex: 1; min-width: 300px;">
@@ -303,6 +303,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=5.1"></script>
+    <script src="app.js?v=5.2"></script>
 </body>
 </html>

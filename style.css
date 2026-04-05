@@ -835,16 +835,21 @@ input:checked + .slider::before { transform: translateX(22px); }
     flex: 1;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
+    gap: 8px;
 }
 .delay-rank-item .rank-airline {
     font-size: 0.8rem;
     font-weight: 600;
+    word-wrap: break-word;
+    flex: 1;
+    line-height: 1.2;
 }
 .delay-rank-item .rank-delay {
     font-size: 0.8rem;
     font-weight: 800;
     color: var(--danger);
+    white-space: nowrap;
 }
 
 @media (max-width: 850px) {

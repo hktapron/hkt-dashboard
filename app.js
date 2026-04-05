@@ -1149,7 +1149,13 @@ function renderDelaySection(master, mode, filterValue) {
             backgroundColor: sortedAirlines.map(a => a[1].avg > 30 ? '#ef4444' : '#f59e0b'),
             borderRadius: 4
         }]
-    }, { indexAxis: 'y', scales: { x: { beginAtZero: true, title: { display: true, text: 'Minutes', color: '#8a8f98', font: { size: 10 } } } } });
+    }, { 
+        indexAxis: 'y', 
+        scales: { 
+            x: { beginAtZero: true, title: { display: true, text: 'Minutes', color: '#8a8f98', font: { size: 10 } } },
+            y: { ticks: { autoSkip: false, font: { size: 10 } } }
+        } 
+    });
 }
 
 function renderOTPSection(master, mode, filterValue) {
@@ -1218,7 +1224,10 @@ function renderOTPSection(master, mode, filterValue) {
         }]
     }, {
         indexAxis: 'y',
-        scales: { x: { beginAtZero: true, title: { display: true, text: 'Minutes', color: '#8a8f98', font: { size: 10 } } } },
+        scales: { 
+            x: { beginAtZero: true, title: { display: true, text: 'Minutes', color: '#8a8f98', font: { size: 10 } } },
+            y: { ticks: { autoSkip: false, font: { size: 10 } } }
+        },
         plugins: { legend: { display: false }, title: { display: true, text: 'Avg Schedule Variance per Airline', color: '#8a8f98', font: { size: 11 } } }
     });
     
