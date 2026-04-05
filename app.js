@@ -642,12 +642,21 @@ function renderCompareCharts(scope, m1, m2, l1, l2, v1, v2) {
 }
 
 function updateMasterMetrics(data, logs) {
-    const counts = { aircraft: data.length, flights: 0, changes: logs ? logs.length : 0 };
+    const counts = { aircraft: data.length, flights: 0, changes: 0 };
     data.forEach(r => {
         const raw = r._raw || [];
         if (isFlight(raw[3])) counts.flights++;
         if (isFlight(raw[5])) counts.flights++;
     });
+    // Count bay changes from logs - Bay History at indices 13, 17, 21, 25...
+    if (logs) {
+        logs.forEach(r => {
+            const raw = r._raw || [];
+            for (let i = 13; i < raw.length; i += 4) {
+                if ((raw[i] || '').trim() !== '') counts.changes++;
+            }
+        });
+    }
     document.getElementById('master-total-ac').textContent = counts.aircraft;
     document.getElementById('master-total-flights').textContent = counts.flights;
     document.getElementById('master-total-change').textContent = counts.changes;
