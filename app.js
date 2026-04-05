@@ -1079,7 +1079,7 @@ function renderDelaySection(master, mode, filterValue) {
             if (d !== null) {
                 delays.arrival.push({ airline, delay: d, flight: flightIn });
                 if (!airlineDelays[airline]) airlineDelays[airline] = [];
-                airlineDelays[airline].push({ type: 'arr', delay: d });
+                airlineDelays[airline].push({ type: 'arr', delay: d, flight: flightIn });
             }
         }
         
@@ -1089,7 +1089,7 @@ function renderDelaySection(master, mode, filterValue) {
             if (d !== null) {
                 delays.departure.push({ airline, delay: d, flight: flightOut });
                 if (!airlineDelays[airline]) airlineDelays[airline] = [];
-                airlineDelays[airline].push({ type: 'dep', delay: d });
+                airlineDelays[airline].push({ type: 'dep', delay: d, flight: flightOut });
             }
         }
     });
@@ -1158,7 +1158,8 @@ function renderOTPSection(master, mode, filterValue) {
     
     master.forEach(r => {
         const flightIn = r['FLIGHT'] || '';
-        const airline = getAirlineCode(flightIn) || getAirlineCode(r['Callsign'] || '');
+        const flightOut = r['FLIGHT_2'] || '';
+        const airline = getAirlineCode(flightIn) || getAirlineCode(flightOut) || getAirlineCode(r['Callsign'] || '');
         if (!airline) return;
         
         const aldt = (r['ALDT'] || '').trim();
@@ -1166,79 +1167,80 @@ function renderOTPSection(master, mode, filterValue) {
         const atot = (r['ATOT'] || '').trim();
         const sobt = (r['SOBT'] || '').trim();
         
-        // Use effective arrival time for timeslot
         const effectiveArr = aldt || sibt;
         const tp = parseTimeWithDay(effectiveArr);
         const hour = tp ? tp.hours : null;
         
-        // Arrival OTP
+        // Arrival OTP (Variance)
         if (aldt && sibt) {
             const d = getDelayMinutes(aldt, sibt);
             if (d !== null) {
-                if (!airlineOTP[airline]) airlineOTP[airline] = { onTime: 0, total: 0 };
+                const absD = Math.abs(d);
+                if (!airlineOTP[airline]) airlineOTP[airline] = { sumDiff: 0, total: 0 };
                 airlineOTP[airline].total++;
-                if (d <= 15) airlineOTP[airline].onTime++;
+                airlineOTP[airline].sumDiff += absD;
                 
                 if (hour !== null) {
                     const slot = `${String(hour).padStart(2, '0')}:00`;
-                    if (!timeslotOTP[slot]) timeslotOTP[slot] = { onTime: 0, total: 0 };
+                    if (!timeslotOTP[slot]) timeslotOTP[slot] = { sumDiff: 0, total: 0 };
                     timeslotOTP[slot].total++;
-                    if (d <= 15) timeslotOTP[slot].onTime++;
+                    timeslotOTP[slot].sumDiff += absD;
                 }
             }
         }
         
-        // Departure OTP
+        // Departure OTP (Variance)
         if (atot && sobt) {
             const d = getDelayMinutes(atot, sobt);
             if (d !== null) {
-                if (!airlineOTP[airline]) airlineOTP[airline] = { onTime: 0, total: 0 };
+                const absD = Math.abs(d);
+                if (!airlineOTP[airline]) airlineOTP[airline] = { sumDiff: 0, total: 0 };
                 airlineOTP[airline].total++;
-                if (d <= 15) airlineOTP[airline].onTime++;
+                airlineOTP[airline].sumDiff += absD;
             }
         }
     });
     
-    // OTP per airline (horizontal bar)
+    // OTP per airline (horizontal bar) - lower variance is better
     const sortedOTP = Object.entries(airlineOTP)
-        .map(([code, d]) => ({ code, rate: d.total > 0 ? (d.onTime / d.total * 100) : 0, total: d.total }))
+        .map(([code, d]) => ({ code, rate: d.total > 0 ? (d.sumDiff / d.total) : 0, total: d.total }))
         .filter(x => x.total >= 2)
-        .sort((a, b) => b.rate - a.rate || b.total - a.total)
+        .sort((a, b) => a.rate - b.rate || b.total - a.total)
         .slice(0, 15);
     
     initChart('otpAirlineChart', 'bar', {
         labels: sortedOTP.map(x => `${x.code} (${x.total})`),
         datasets: [{
-            label: 'OTP %',
+            label: 'Avg Variance (min)',
             data: sortedOTP.map(x => Math.round(x.rate)),
-            backgroundColor: sortedOTP.map(x => x.rate >= 80 ? '#00ff9d' : x.rate >= 50 ? '#f59e0b' : '#ef4444'),
+            backgroundColor: sortedOTP.map(x => x.rate <= 15 ? '#00ff9d' : x.rate <= 30 ? '#f59e0b' : '#ef4444'),
             borderRadius: 4
         }]
     }, {
         indexAxis: 'y',
-        scales: { x: { beginAtZero: true, max: 100, title: { display: true, text: 'OTP %', color: '#8a8f98', font: { size: 10 } } } },
-        plugins: { legend: { display: false }, title: { display: true, text: 'OTP Rate per Airline', color: '#8a8f98', font: { size: 11 } } }
+        scales: { x: { beginAtZero: true, title: { display: true, text: 'Minutes', color: '#8a8f98', font: { size: 10 } } } },
+        plugins: { legend: { display: false }, title: { display: true, text: 'Avg Schedule Variance per Airline', color: '#8a8f98', font: { size: 11 } } }
     });
     
-    // OTP per timeslot
+    // Variance per timeslot
     const slots = Object.entries(timeslotOTP).sort((a, b) => a[0].localeCompare(b[0]));
     initChart('otpTimeslotChart', 'bar', {
         labels: slots.map(s => s[0]),
         datasets: [{
-            label: 'OTP %',
-            data: slots.map(s => s[1].total > 0 ? Math.round(s[1].onTime / s[1].total * 100) : 0),
+            label: 'Avg Variance (min)',
+            data: slots.map(s => s[1].total > 0 ? Math.round(s[1].sumDiff / s[1].total) : 0),
             backgroundColor: slots.map(s => {
-                const rate = s[1].total > 0 ? s[1].onTime / s[1].total * 100 : 100;
-                return rate >= 80 ? '#00ff9d' : rate >= 50 ? '#f59e0b' : '#ef4444';
+                const rate = s[1].total > 0 ? s[1].sumDiff / s[1].total : 0;
+                return rate <= 15 ? '#00ff9d' : rate <= 30 ? '#f59e0b' : '#ef4444';
             }),
             borderRadius: 4
         }]
     }, {
-        scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: '%', color: '#8a8f98', font: { size: 10 } } } },
-        plugins: { legend: { display: false }, title: { display: true, text: 'OTP Rate per Time Slot', color: '#8a8f98', font: { size: 11 } } }
+        scales: { y: { beginAtZero: true, title: { display: true, text: 'Minutes', color: '#8a8f98', font: { size: 10 } } } },
+        plugins: { legend: { display: false }, title: { display: true, text: 'Avg Variance per Time Slot', color: '#8a8f98', font: { size: 11 } } }
     });
     
-    // Monthly OTP Trend
+    // Monthly Variance Trend
     if (mode === 'monthly') {
         const [fMonth, fYear] = filterValue.split('-').map(Number);
         const dailyOTP = {};
@@ -1250,19 +1252,19 @@ function renderOTPSection(master, mode, filterValue) {
             if (!aldt || !sibt) return;
             const d = getDelayMinutes(aldt, sibt);
             if (d === null) return;
-            if (!dailyOTP[dObj.day]) dailyOTP[dObj.day] = { onTime: 0, total: 0 };
+            if (!dailyOTP[dObj.day]) dailyOTP[dObj.day] = { sumDiff: 0, total: 0 };
             dailyOTP[dObj.day].total++;
-            if (d <= 15) dailyOTP[dObj.day].onTime++;
+            dailyOTP[dObj.day].sumDiff += Math.abs(d);
         });
         const days = Object.keys(dailyOTP).sort((a, b) => Number(a) - Number(b));
         initChart('otpTrendChart', 'line', {
             labels: days,
             datasets: [{
-                label: 'OTP %',
-                data: days.map(d => dailyOTP[d].total > 0 ? Math.round(dailyOTP[d].onTime / dailyOTP[d].total * 100) : 0),
+                label: 'Avg Variance (min)',
+                data: days.map(d => dailyOTP[d].total > 0 ? Math.round(dailyOTP[d].sumDiff / dailyOTP[d].total) : 0),
                 borderColor: '#00f2ff', backgroundColor: 'rgba(0,242,255,0.1)', fill: true, tension: 0.4
             }]
-        }, { scales: { y: { beginAtZero: true, max: 100 } } });
+        }, { scales: { y: { beginAtZero: true, title: { display: true, text: 'Minutes', color: '#8a8f98', font: { size: 10 } } } } });
     }
 }
 
