@@ -177,6 +177,37 @@ body {
     position: relative;
     box-shadow: var(--card-shadow);
     transition: var(--transition);
+    overflow: hidden; /* Prevent tooltip bleed if preferred, though absolute positioning needs parent ref */
+}
+
+/* Enterprise SaaS Tooltip */
+.chart-tooltip {
+    opacity: 0;
+    position: absolute;
+    background: rgba(9, 9, 11, 0.9); /* Zinc 950 with 90% opacity */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary);
+    border-radius: 6px;
+    pointer-events: none;
+    transition: all 0.15s ease;
+    transform: translate(-50%, -100%); /* Position above the caret */
+    margin-top: -10px;
+    z-index: 100;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    min-width: 120px;
+}
+
+.chart-tooltip table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.chart-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
 }
 
 .card-glass:hover {
