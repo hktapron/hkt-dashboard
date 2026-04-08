@@ -443,9 +443,77 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover {
     margin-top: 2px;
 }
 
-/* Theme Switch */
-.theme-switch-wrapper {
-    padding: 20px 0;
+/* OTP Excellence Leaderboard */
+.otp-leaderboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.otp-award-card {
+    background: #09090b; /* Zinc 950 */
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: var(--transition);
+}
+
+.otp-award-card.rank-1 {
+    background: #09090b;
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.otp-award-card.rank-1::after {
+    content: "RANK 1";
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    font-size: 0.5rem;
+    font-weight: 800;
+    color: #10b981;
+    letter-spacing: 0.1em;
+    padding: 2px 6px;
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 4px;
+}
+
+.otp-card-airline {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.rank-1 .otp-card-airline {
+    color: var(--text-primary);
+}
+
+.otp-card-score {
+    font-size: 1.8rem;
+    font-weight: 800;
+    font-family: var(--font-heading);
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.rank-1 .otp-card-score {
+    color: #10b981; /* Emerald 400 */
+}
+
+.otp-card-diff {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    margin-top: 4px;
 }
 
 .theme-switch {

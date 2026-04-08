@@ -1272,6 +1272,9 @@ function renderOTPSection(master, mode, filterValue) {
     const airlineOTP = {};
     const timeslotOTP = {};
     
+    // Leaderboard calculation data
+    const excellenceData = {};
+    
     master.forEach(r => {
         const flightIn = r['FLIGHT'] || '';
         const flightOut = r['FLIGHT_2'] || '';
@@ -1315,7 +1318,50 @@ function renderOTPSection(master, mode, filterValue) {
                 airlineOTP[airline].sumDiff += absD;
             }
         }
+
+        // Leaderboard Excellence Logic (Requires BOTH ALDT and ATOT)
+        if (aldt && sibt && atot && sobt) {
+            const dArr = Math.abs(getDelayMinutes(aldt, sibt));
+            const dDep = Math.abs(getDelayMinutes(atot, sobt));
+            
+            if (!excellenceData[airline]) excellenceData[airline] = { sumScore: 0, sumDiff: 0, count: 0 };
+            
+            // Score = max(0, (10 - diff) * 10)
+            const scoreArr = Math.max(0, (10 - dArr) * 10);
+            const scoreDep = Math.max(0, (10 - dDep) * 10);
+            
+            excellenceData[airline].sumScore += (scoreArr + scoreDep);
+            excellenceData[airline].sumDiff += (dArr + dDep);
+            excellenceData[airline].count++;
+        }
     });
+
+    // Render Leaderboard
+    const leaderboardEl = document.getElementById('otp-leaderboard');
+    if (leaderboardEl) {
+        const topPerformers = Object.entries(excellenceData)
+            .map(([code, d]) => ({
+                code,
+                score: Math.round((d.sumScore / (d.count * 200)) * 100),
+                avgDiff: (d.sumDiff / (d.count * 2)).toFixed(1),
+                total: d.count
+            }))
+            .filter(x => x.total >= 1)
+            .sort((a, b) => b.score - a.score || a.avgDiff - b.avgDiff)
+            .slice(0, 5);
+
+        if (topPerformers.length === 0) {
+            leaderboardEl.innerHTML = '<div style="grid-column: 1/-1; color: var(--text-dim); font-size: 0.8rem; text-align: center; padding: 20px;">Insufficient turnaround data (ALDT + ATOT required) for Leaderboard</div>';
+        } else {
+            leaderboardEl.innerHTML = topPerformers.map((p, i) => `
+                <div class="otp-award-card ${i === 0 ? 'rank-1' : ''}">
+                    <div class="otp-card-airline">${p.code}</div>
+                    <div class="otp-card-score">${p.score}%</div>
+                    <div class="otp-card-diff">Avg Diff: ${p.avgDiff}m</div>
+                </div>
+            `).join('');
+        }
+    }
     
     // OTP per airline (horizontal bar) - lower variance is better
     const sortedOTP = Object.entries(airlineOTP)

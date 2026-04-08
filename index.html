@@ -182,14 +182,24 @@
                 </div>
 
                 <!-- OTP Scorecard -->
-                <div id="card-otp" class="card-glass span-12" style="grid-row: span 6; display: flex; flex-direction: column;">
-                    <h3 class="chart-title">Schedule Reliability Scorecard</h3>
-                    <div style="display: flex; gap: 24px; flex-wrap: wrap; margin-top: 12px; flex: 1; align-items: stretch;">
-                        <div style="flex: 1; min-width: 320px; display: flex; flex-direction: column;">
-                            <div class="chart-inner" style="flex: 1; min-height: 200px;"><canvas id="otpAirlineChart"></canvas></div>
+                <div id="card-otp" class="card-glass span-12" style="grid-row: span 8; display: flex; flex-direction: column;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 class="chart-title" style="margin-bottom: 0;">Schedule Reliability Scorecard</h3>
+                        <div style="font-size: 0.65rem; color: var(--text-dim); background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 2px 8px; border-radius: 4px; font-weight: 700;">OTP EXCELLENCE AWARD (DIFF ≤ 10m)</div>
+                    </div>
+                    
+                    <!-- Row 1: Leaderboard -->
+                    <div id="otp-leaderboard" class="otp-leaderboard-grid">
+                        <!-- Dynamically populated by app.js -->
+                    </div>
+
+                    <!-- Row 2: Charts -->
+                    <div style="display: flex; gap: 24px; flex-wrap: wrap; flex: 1; align-items: stretch; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+                        <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column;">
+                            <div class="chart-inner" style="flex: 1; min-height: 180px;"><canvas id="otpAirlineChart"></canvas></div>
                         </div>
-                        <div style="flex: 1; min-width: 320px; display: flex; flex-direction: column;">
-                            <div class="chart-inner" style="flex: 1; min-height: 200px;"><canvas id="otpTimeslotChart"></canvas></div>
+                        <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column;">
+                            <div class="chart-inner" style="flex: 1; min-height: 180px;"><canvas id="otpTimeslotChart"></canvas></div>
                         </div>
                     </div>
                 </div>
