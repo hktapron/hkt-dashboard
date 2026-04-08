@@ -1341,6 +1341,7 @@ function renderOTPSection(master, mode, filterValue) {
     // Render Baylink Point-Based Leaderboard
     const leaderboardEl = document.getElementById('otp-leaderboard');
     if (leaderboardEl) {
+        const MIN_OTP_FLIGHTS = 3;
         const topPerformers = Object.entries(excellenceData)
             .map(([code, d]) => ({
                 code,
@@ -1349,6 +1350,7 @@ function renderOTPSection(master, mode, filterValue) {
                 avgArr: (d.sumArrPoints / d.totalFlights).toFixed(1),
                 avgDep: (d.sumDepPoints / d.totalFlights).toFixed(1)
             }))
+            .filter(p => p.flights >= MIN_OTP_FLIGHTS)
             .sort((a, b) => b.avgScore - a.avgScore || b.flights - a.flights)
             .slice(0, 5);
 
