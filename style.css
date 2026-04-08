@@ -169,15 +169,27 @@ body {
     margin-bottom: 20px;
 }
 
+.brand-text-gold {
+    background: linear-gradient(to right, #fde68a, #facc15, #d97706);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    display: inline-block;
+}
+
 .card-glass {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
     border-radius: 0.75rem;
-    padding: 16px;
+    padding: 1.5rem;
     position: relative;
     box-shadow: var(--card-shadow);
     transition: var(--transition);
-    overflow: hidden; /* Prevent tooltip bleed if preferred, though absolute positioning needs parent ref */
+    height: auto !important; /* Force auto-height for responsive stability */
+    min-height: fit-content;
+    margin-bottom: 2rem; /* Consistent spacing between sections */
 }
 
 /* Enterprise SaaS Tooltip */

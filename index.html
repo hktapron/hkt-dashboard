@@ -20,8 +20,8 @@
     <!-- Mobile Header -->
     <header class="mobile-header">
         <div class="mobile-logo">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#eab308" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><path d="M12 2L4.5 9V22H19.5V9L12 2Z"></path><path d="M12 2V22"></path><path d="M4.5 9H19.5"></path></svg>
-            <span class="logo-accent" style="color: #eab308; font-weight: 800; font-family: var(--font-logo-accent);">BAYLINK</span><span style="color: var(--text-muted); font-size: 0.65rem; margin-left: 4px; letter-spacing: 0.1em; font-weight: 600;">HKT</span>
+            <span class="brand-text-gold" style="font-size: 1.25rem;">BAYLINK</span>
+            <span style="color: var(--text-muted); font-size: 0.65rem; margin-left: 6px; letter-spacing: 0.1em; font-weight: 700;">HKT</span>
         </div>
         <button id="mobile-filter-toggle" class="mobile-toggle-btn">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
@@ -35,10 +35,9 @@
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
             <div class="logo">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#eab308" stroke-width="2.5"><path d="M12 2L4.5 9V22H19.5V9L12 2Z"></path><path d="M12 2V22"></path><path d="M4.5 9H19.5"></path></svg>
                 <div style="display: flex; flex-direction: column; line-height: 1;">
-                    <span class="logo-accent" style="color: #eab308; font-weight: 800; font-family: var(--font-logo-accent); letter-spacing: -0.02em;">BAYLINK</span>
-                    <span style="color: var(--text-dim); font-size: 0.6rem; letter-spacing: 0.25em; font-weight: 700; margin-top: 2px;">ANALYTICS</span>
+                    <span class="brand-text-gold" style="font-size: 1.5rem; letter-spacing: -0.05em;">BAYLINK</span>
+                    <span style="color: var(--text-dim); font-size: 0.65rem; letter-spacing: 0.35em; font-weight: 700; margin-top: 4px; padding-left: 2px;">ANALYTICS</span>
                 </div>
             </div>
             <nav class="nav-menu">
@@ -91,7 +90,8 @@
         <main class="main-content">
             <header class="top-header">
                 <div class="header-title">
-                    <h1>VTSP Apron Management Dashboard</h1>
+                    <h1 id="dashboard-title-main">Baylink HKT Apron Analytics</h1>
+                    <p class="subtitle" id="dashboard-subtitle">Precision Schedule Reliability & Operational Flow Monitoring</p>
                 </div>
                 <div class="date-picker-container"></div>
             </header>
@@ -145,13 +145,13 @@
 
 
                 <!-- Row 3: Peak Hour -->
-                <div id="card-peak" class="card-glass span-12" style="grid-row: span 6;">
+                <div id="card-peak" class="card-glass span-12">
                     <h3 class="chart-title">Peak Hour Operations</h3>
                     <div class="chart-inner" style="height: 200px;"><canvas id="peakHourChart"></canvas></div>
                 </div>
 
                 <!-- Row 4: Utilization -->
-                <div id="card-util" class="card-glass span-12" style="grid-row: span 6;">
+                <div id="card-util" class="card-glass span-12">
                     <h3 class="chart-title" style="margin-bottom: 4px;">Contact Bay Utilization (Bays 4-15)</h3>
                     <div class="chart-inner" style="height: 200px;"><canvas id="utilizationChart"></canvas></div>
                 </div>
@@ -169,7 +169,7 @@
                 </div>
 
                 <!-- Delay Analysis -->
-                <div id="card-delay" class="card-glass span-12" style="grid-row: span 6; display: flex; flex-direction: column;">
+                <div id="card-delay" class="card-glass span-12" style="display: flex; flex-direction: column;">
                     <h3 class="chart-title">Delay Performance Analysis <span id="delay-threshold-note" style="font-size:0.7rem; color:var(--text-dim); font-weight:400;">(Threshold > 15m)</span></h3>
                     <div class="delay-layout" style="display: flex; gap: 24px; flex-wrap: wrap; margin-top: 12px; flex: 1; align-items: stretch;">
                         <div style="flex: 0 0 180px; display: flex; align-items: center; justify-content: center;">
@@ -184,11 +184,10 @@
                     </div>
                 </div>
 
-                <!-- OTP Scorecard -->
-                <div id="card-otp" class="card-glass span-12" style="grid-row: span 8; display: flex; flex-direction: column; height: auto; padding-bottom: 48px;">
-                    <div style="margin-bottom: 12px;">
+                <div id="card-otp" class="card-glass span-12">
+                    <div style="margin-bottom: 24px;">
                         <h3 class="chart-title" style="margin-bottom: 4px;">Schedule Reliability Scorecard</h3>
-                        <span style="font-size: 0.65rem; color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 2px 8px; border-radius: 4px; font-weight: 700; display: inline-block;">OTP EXCELLENCE AWARD (DIFF ≤ 10m)</span>
+                        <span style="font-size: 0.65rem; color: #eab308; background: rgba(234, 179, 8, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: 700; display: inline-block; letter-spacing: 0.05em;">BAYLINK OTP SCORING SYSTEM (POINTS BASED)</span>
                     </div>
                     
                     <!-- Row 1: Premium Award Carousel -->
@@ -220,13 +219,13 @@
                 </div>
 
                 <!-- Monthly OTP Trend -->
-                <div id="card-otp-trend" class="card-glass span-12" style="grid-row: span 6; display: none;">
+                <div id="card-otp-trend" class="card-glass span-12" style="display: none;">
                     <h3 class="chart-title">OTP Performance History</h3>
                     <div class="chart-inner" style="height: 200px;"><canvas id="otpTrendChart"></canvas></div>
                 </div>
 
                 <!-- Turnaround Time -->
-                <div id="card-turnaround" class="card-glass span-12" style="grid-row: span 6;">
+                <div id="card-turnaround" class="card-glass span-12">
                     <h3 class="chart-title">Turnaround Efficiency Analysis</h3>
                     <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;">
                         <select id="turnaround-airline" class="glass-select" style="min-width: 160px;">
@@ -238,7 +237,7 @@
                 </div>
 
                 <!-- Taxi Time -->
-                <div id="card-taxi" class="card-glass span-12" style="grid-row: span 6;">
+                <div id="card-taxi" class="card-glass span-12">
                     <h3 class="chart-title">Surface Navigation Metrics (Taxi)</h3>
                     <div id="taxi-stats" style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;"></div>
                     <div class="chart-inner" style="height: 200px;"><canvas id="taxiChart"></canvas></div>

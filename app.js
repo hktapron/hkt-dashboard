@@ -1295,99 +1295,91 @@ function renderOTPSection(master, mode, filterValue) {
         const tp = parseTimeWithDay(effectiveArr);
         const hour = tp ? tp.hours : null;
         
-        // Arrival OTP (Variance)
-        if (aldt && sibt) {
-            const d = getDelayMinutes(aldt, sibt);
-            if (d !== null) {
-                const absD = Math.abs(d);
-                if (!airlineOTP[airline]) airlineOTP[airline] = { sumDiff: 0, total: 0 };
-                airlineOTP[airline].total++;
-                airlineOTP[airline].sumDiff += absD;
-                
-                if (hour !== null) {
-                    const slot = `${String(hour).padStart(2, '0')}:00`;
-                    if (!timeslotOTP[slot]) timeslotOTP[slot] = { sumDiff: 0, total: 0 };
-                    timeslotOTP[slot].total++;
-                    timeslotOTP[slot].sumDiff += absD;
-                }
-            }
-        }
-        
-        // Departure OTP (Variance)
-        if (atot && sobt) {
-            const d = getDelayMinutes(atot, sobt);
-            if (d !== null) {
-                const absD = Math.abs(d);
-                if (!airlineOTP[airline]) airlineOTP[airline] = { sumDiff: 0, total: 0 };
-                airlineOTP[airline].total++;
-                airlineOTP[airline].sumDiff += absD;
-            }
-        }
-
-        // Fix logic for Excellence Leaderboard (Both legs must be <= 10m)
+        // New Baylink Point-Based Scoring Engine
         if (aldt && sibt && atot && sobt) {
-            const rawArr = getDelayMinutes(aldt, sibt);
-            const rawDep = getDelayMinutes(atot, sobt);
+            const rawArr = getDelayMinutes(aldt, sibt); // ALDT - SIBT
+            const rawDep = getDelayMinutes(atot, sobt); // ATOT - SOBT
             
             if (rawArr !== null && rawDep !== null) {
-                const dArr = Math.abs(rawArr);
-                const dDep = Math.abs(rawDep);
+                if (!excellenceData[airline]) excellenceData[airline] = { totalPoints: 0, totalFlights: 0, sumArrPoints: 0, sumDepPoints: 0 };
                 
-                if (!excellenceData[airline]) excellenceData[airline] = { total: 0, onTime: 0, sumOnTimeDiff: 0 };
-                
-                excellenceData[airline].total++;
-                if (dArr <= 10 && dDep <= 10) {
-                    excellenceData[airline].onTime++;
-                    excellenceData[airline].sumOnTimeDiff += (dArr + dDep);
+                let arrPts = 0;
+                let depPts = 0;
+
+                // Rule 2: Arrival Scoring logic
+                if (rawArr >= -5 && rawArr <= 5) arrPts = 3;
+                else if (rawArr >= -20 && rawArr <= -6) arrPts = 1;
+                else if (rawArr > 15) arrPts = -1;
+
+                // Rule 3: Departure Scoring logic
+                if (rawDep < 0) depPts = 3;
+                else if (rawDep >= 0 && rawDep <= 5) depPts = 2;
+                else if (rawDep >= 21 && rawDep <= 60) depPts = -1;
+                else if (rawDep > 60) depPts = -2;
+
+                const totalLoopPts = arrPts + depPts;
+                excellenceData[airline].totalPoints += totalLoopPts;
+                excellenceData[airline].sumArrPoints += arrPts;
+                excellenceData[airline].sumDepPoints += depPts;
+                excellenceData[airline].totalFlights++;
+
+                // Also populate for secondary charts
+                if (!airlineOTP[airline]) airlineOTP[airline] = { points: 0, total: 0 };
+                airlineOTP[airline].points += totalLoopPts;
+                airlineOTP[airline].total++;
+
+                if (hour !== null) {
+                    const slot = `${String(hour).padStart(2, '0')}:00`;
+                    if (!timeslotOTP[slot]) timeslotOTP[slot] = { points: 0, total: 0 };
+                    timeslotOTP[slot].points += totalLoopPts;
+                    timeslotOTP[slot].total++;
                 }
             }
         }
     });
 
-    // Render Volume-Based Leaderboard
+    // Render Baylink Point-Based Leaderboard
     const leaderboardEl = document.getElementById('otp-leaderboard');
     if (leaderboardEl) {
         const topPerformers = Object.entries(excellenceData)
             .map(([code, d]) => ({
                 code,
-                onTime: d.onTime,
-                total: d.total,
-                rate: Math.round((d.onTime / d.total) * 100),
-                avgDiff: d.onTime > 0 ? (d.sumOnTimeDiff / (d.onTime * 2)).toFixed(1) : 0
+                points: d.totalPoints,
+                flights: d.totalFlights,
+                avgArr: (d.sumArrPoints / d.totalFlights).toFixed(1),
+                avgDep: (d.sumDepPoints / d.totalFlights).toFixed(1)
             }))
-            .filter(x => x.onTime > 0)
-            .sort((a, b) => b.onTime - a.onTime || b.rate - a.rate)
+            .sort((a, b) => b.points - a.points || b.flights - a.flights)
             .slice(0, 5);
 
         if (topPerformers.length === 0) {
-            leaderboardEl.innerHTML = '<div style="grid-column: 1/-1; color: var(--text-dim); font-size: 0.8rem; text-align: center; padding: 20px;">No flights met the ≤ 10m excellence criteria (ALDT + ATOT required)</div>';
+            leaderboardEl.innerHTML = '<div style="grid-column: 1/-1; color: var(--text-dim); font-size: 0.8rem; text-align: center; padding: 20px;">No flights with complete ALDT+ATOT data available.</div>';
         } else {
             leaderboardEl.innerHTML = topPerformers.map((p, i) => `
                 <div class="otp-award-card ${i === 0 ? 'rank-1' : ''}">
                     <div class="rank-badge">RANK ${i + 1}</div>
                     <div class="otp-card-airline">${p.code}</div>
-                    <div class="otp-card-score">${p.onTime}/${p.total} Flights</div>
+                    <div class="otp-card-score">${p.points} Pts</div>
                     <div class="otp-card-diff">
-                        On-Time Rate: ${p.rate}% <span style="opacity: 0.3; margin: 0 4px;">|</span> Avg Diff: ${p.avgDiff}m
+                        ${p.flights} Flights <span style="opacity: 0.3; margin: 0 4px;">|</span> Arr: ${p.avgArr} / Dep: ${p.avgDep} avg
                     </div>
                 </div>
             `).join('');
         }
     }
     
-    // OTP per airline (horizontal bar) - lower variance is better
+    // OTP Chart Points
     const sortedOTP = Object.entries(airlineOTP)
-        .map(([code, d]) => ({ code, rate: d.total > 0 ? (d.sumDiff / d.total) : 0, total: d.total }))
-        .filter(x => x.total >= 2)
-        .sort((a, b) => a.rate - b.rate || b.total - a.total)
+        .map(([code, d]) => ({ code, points: d.points, total: d.total }))
+        .sort((a, b) => b.points - a.points)
         .slice(0, 15);
     
     initChart('otpAirlineChart', 'bar', {
         labels: sortedOTP.map(x => `${x.code}`),
         datasets: [{
-            label: 'Avg Variance (min)',
-            data: sortedOTP.map(x => Math.round(x.rate)),
-            backgroundColor: sortedOTP.map(x => x.rate <= 15 ? '#10b981' : x.rate <= 30 ? '#f59e0b' : '#f43f5e'),
+            label: 'Total Performance Points',
+            data: sortedOTP.map(x => x.points),
+            backgroundColor: sortedOTP.map(x => x.points >= 0 ? '#eab308' : '#f43f5e'),
             borderRadius: 2,
             barPercentage: 0.5
         }]
@@ -1399,38 +1391,28 @@ function renderOTPSection(master, mode, filterValue) {
                 title: { display: false },
                 ticks: { font: { size: 10 }, color: '#71717a' }
             },
-            y: { ticks: { autoSkip: false, font: { size: 10 }, color: '#71717a' } }
-        },
-        plugins: { 
-            legend: { display: false }, 
-            title: { display: true, text: 'Avg Schedule Variance per Airline', color: '#71717a', font: { size: 10, family: 'Manrope', weight: 600 } } 
+            y: { ticks: { autoSkip: false, font: { size: 10 }, color: '#f4f4f5' } }
         }
     });
-    
-    // Variance per timeslot
-    const slots = Object.entries(timeslotOTP).sort((a, b) => a[0].localeCompare(b[0]));
+
+    const sortedSlots = Object.entries(timeslotOTP)
+        .map(([slot, d]) => ({ slot, points: d.points }))
+        .sort((a, b) => a.slot.localeCompare(b.slot));
+
     initChart('otpTimeslotChart', 'bar', {
-        labels: slots.map(s => s[0]),
+        labels: sortedSlots.map(x => x.slot),
         datasets: [{
-            label: 'Avg Variance (min)',
-            data: slots.map(s => s[1].total > 0 ? Math.round(s[1].sumDiff / s[1].total) : 0),
-            backgroundColor: slots.map(s => {
-                const rate = s[1].total > 0 ? s[1].sumDiff / s[1].total : 0;
-                return rate <= 15 ? '#10b981' : rate <= 30 ? '#f59e0b' : '#f43f5e';
-            }),
-            borderRadius: 2,
-            barPercentage: 0.5
+            label: 'Total Performance Points',
+            data: sortedSlots.map(x => x.points),
+            backgroundColor: '#eab30866',
+            borderColor: '#eab308',
+            borderWidth: 1,
+            borderRadius: 2
         }]
     }, {
-        scales: { 
-            y: { 
-                beginAtZero: true, 
-                title: { display: true, text: 'Minutes', color: '#71717a', font: { size: 10 } }
-            } 
-        },
-        plugins: { 
-            legend: { display: false }, 
-            title: { display: true, text: 'Avg Variance per Time Slot', color: '#71717a', font: { size: 11, family: 'Manrope', weight: 600 } } 
+        scales: {
+            y: { beginAtZero: true, ticks: { font: { size: 10 }, color: '#71717a' } },
+            x: { ticks: { font: { size: 10 }, color: '#71717a' } }
         }
     });
     
