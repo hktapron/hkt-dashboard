@@ -446,23 +446,11 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover {
 /* OTP Excellence Leaderboard & Responsive Layouts */
 .otp-leaderboard-grid {
     display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
     gap: 12px;
     padding-bottom: 8px;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
 }
 
-.hide-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
-}
-.hide-scrollbar::-webkit-scrollbar {
-    display: none; /* Chrome, Safari and Opera */
-}
-
-/* Scrollbar styling for horizontal scroll - kept as fallback or subtle indicator */
+/* Scrollbar styling for horizontal scroll */
 .otp-leaderboard-grid::-webkit-scrollbar {
     height: 4px;
 }
@@ -474,24 +462,17 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover {
     border-radius: 4px;
 }
 
-/* Responsive Grid for Charts */
-.responsive-chart-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 24px;
-    width: 100%;
-}
-
-@media (min-width: 1024px) {
-    .responsive-chart-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-}
-
 /* Vertical to Horizontal Layout Switch */
 @media (min-width: 768px) {
     .md-row-layout {
         flex-direction: row !important;
+    }
+    
+    .otp-leaderboard-grid {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+        overflow-x: visible !important;
+        padding-bottom: 0 !important;
     }
 }
 
