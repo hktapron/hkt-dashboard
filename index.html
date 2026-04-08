@@ -182,7 +182,7 @@
                 </div>
 
                 <!-- OTP Scorecard -->
-                <div id="card-otp" class="card-glass span-12" style="grid-row: span 8; display: flex; flex-direction: column; height: auto; padding-bottom: 24px;">
+                <div id="card-otp" class="card-glass span-12" style="grid-row: span 8; display: flex; flex-direction: column; height: auto; padding-bottom: 48px;">
                     <div style="margin-bottom: 12px;">
                         <h3 class="chart-title" style="margin-bottom: 4px;">Schedule Reliability Scorecard</h3>
                         <span style="font-size: 0.65rem; color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 2px 8px; border-radius: 4px; font-weight: 700; display: inline-block;">OTP EXCELLENCE AWARD (DIFF ≤ 10m)</span>
@@ -195,11 +195,13 @@
 
                     <!-- Row 2: Charts (Vertical Stack on Mobile, Horizontal on Desktop) -->
                     <div style="display: flex; flex-direction: column; gap: 24px; flex: 1; border-top: 1px solid var(--border-subtle); padding-top: 16px;" class="md-row-layout">
-                        <div style="flex: 1; width: 100%;">
-                            <div class="chart-inner" style="height: 220px;"><canvas id="otpAirlineChart"></canvas></div>
+                        <div style="flex: 1; width: 100%; min-height: 250px;">
+                            <h4 style="font-size: 0.65rem; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; font-weight: 700;">Avg Schedule Variance per Airline</h4>
+                            <div class="chart-inner" style="height: 250px;"><canvas id="otpAirlineChart"></canvas></div>
                         </div>
-                        <div style="flex: 1; width: 100%;">
-                            <div class="chart-inner" style="height: 220px;"><canvas id="otpTimeslotChart"></canvas></div>
+                        <div style="flex: 1; width: 100%; min-height: 250px;">
+                            <h4 style="font-size: 0.65rem; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; font-weight: 700;">Avg Schedule Variance per Time Slot</h4>
+                            <div class="chart-inner" style="height: 250px;"><canvas id="otpTimeslotChart"></canvas></div>
                         </div>
                     </div>
                 </div>

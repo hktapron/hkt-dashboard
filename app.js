@@ -1132,12 +1132,17 @@ function parseTimeWithDay(timeStr) {
 }
 
 function getDelayMinutes(actualStr, scheduledStr) {
-    const actual = parseTimeWithDay(actualStr);
-    const scheduled = parseTimeWithDay(scheduledStr);
+    if (!actualStr || !scheduledStr) return null;
+    const actual = parseTimeWithDay(String(actualStr).trim());
+    const scheduled = parseTimeWithDay(String(scheduledStr).trim());
     if (!actual || !scheduled) return null;
+    
     let diff = actual.totalMinutes - scheduled.totalMinutes;
-    if (diff < -720) diff += 44640; // handle month wrap
-    if (diff > 1440) return null; // >24h seems wrong
+    // Handle cross-midnight (e.g. 23:55 to 00:05)
+    // If diff is roughly -24h, add 1440. If diff is roughly +24h, sub 1440.
+    if (diff < -720) diff += 1440;
+    else if (diff > 720) diff -= 1440;
+    
     return diff;
 }
 
@@ -1321,15 +1326,20 @@ function renderOTPSection(master, mode, filterValue) {
 
         // Fix logic for Excellence Leaderboard (Both legs must be <= 10m)
         if (aldt && sibt && atot && sobt) {
-            const dArr = Math.abs(getDelayMinutes(aldt, sibt));
-            const dDep = Math.abs(getDelayMinutes(atot, sobt));
+            const rawArr = getDelayMinutes(aldt, sibt);
+            const rawDep = getDelayMinutes(atot, sobt);
             
-            if (!excellenceData[airline]) excellenceData[airline] = { total: 0, onTime: 0, sumOnTimeDiff: 0 };
-            
-            excellenceData[airline].total++;
-            if (dArr <= 10 && dDep <= 10) {
-                excellenceData[airline].onTime++;
-                excellenceData[airline].sumOnTimeDiff += (dArr + dDep);
+            if (rawArr !== null && rawDep !== null) {
+                const dArr = Math.abs(rawArr);
+                const dDep = Math.abs(rawDep);
+                
+                if (!excellenceData[airline]) excellenceData[airline] = { total: 0, onTime: 0, sumOnTimeDiff: 0 };
+                
+                excellenceData[airline].total++;
+                if (dArr <= 10 && dDep <= 10) {
+                    excellenceData[airline].onTime++;
+                    excellenceData[airline].sumOnTimeDiff += (dArr + dDep);
+                }
             }
         }
     });
