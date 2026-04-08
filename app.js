@@ -1379,7 +1379,7 @@ function renderOTPSection(master, mode, filterValue) {
         datasets: [{
             label: 'Total Performance Points',
             data: sortedOTP.map(x => x.points),
-            backgroundColor: sortedOTP.map(x => x.points >= 0 ? '#eab308' : '#f43f5e'),
+            backgroundColor: sortedOTP.map(x => x.points >= 0 ? '#4f46e5' : '#f43f5e'),
             borderRadius: 2,
             barPercentage: 0.5
         }]
@@ -1404,8 +1404,8 @@ function renderOTPSection(master, mode, filterValue) {
         datasets: [{
             label: 'Total Performance Points',
             data: sortedSlots.map(x => x.points),
-            backgroundColor: '#eab30866',
-            borderColor: '#eab308',
+            backgroundColor: '#4f46e566',
+            borderColor: '#6366f1',
             borderWidth: 1,
             borderRadius: 2
         }]
