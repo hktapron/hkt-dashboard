@@ -141,35 +141,35 @@
                         <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem;"><span style="color:var(--text-dim); font-weight:500;">Estimate</span><span id="dc-scheduled" style="font-weight:600; color:var(--text-dim);">0</span></div>
                     </div>
                 </div>
+            </div>
 
-
-
+            <div class="sections-stack">
                 <!-- Row 3: Peak Hour -->
-                <div id="card-peak" class="card-glass span-12">
+                <div id="card-peak" class="card-glass">
                     <h3 class="chart-title">Peak Hour Operations</h3>
                     <div class="chart-inner" style="height: 200px;"><canvas id="peakHourChart"></canvas></div>
                 </div>
 
                 <!-- Row 4: Utilization -->
-                <div id="card-util" class="card-glass span-12">
+                <div id="card-util" class="card-glass">
                     <h3 class="chart-title" style="margin-bottom: 4px;">Contact Bay Utilization (Bays 4-15)</h3>
                     <div class="chart-inner" style="height: 200px;"><canvas id="utilizationChart"></canvas></div>
                 </div>
 
                 <!-- Monthly Trend Charts -->
-                <div id="monthly-trends-container" class="span-12" style="grid-column: span 12; display: none;">
-                    <div class="card-glass span-12" style="grid-row: span 6;">
+                <div id="monthly-trends-container" style="display: none; flex-direction: column; gap: 2rem;">
+                    <div class="card-glass">
                         <h3 class="chart-title">Monthly Flights</h3>
                         <div class="chart-inner" style="height: 200px;"><canvas id="monthlyFlightsChart"></canvas></div>
                     </div>
-                    <div class="card-glass span-12" style="grid-row: span 6;">
+                    <div class="card-glass">
                         <h3 class="chart-title">Monthly Total Bay Changes</h3>
                         <div class="chart-inner" style="height: 200px;"><canvas id="monthlyChangesChart"></canvas></div>
                     </div>
                 </div>
 
                 <!-- Delay Analysis -->
-                <div id="card-delay" class="card-glass span-12" style="display: flex; flex-direction: column;">
+                <div id="card-delay" class="card-glass" style="display: flex; flex-direction: column;">
                     <h3 class="chart-title">Delay Performance Analysis <span id="delay-threshold-note" style="font-size:0.7rem; color:var(--text-dim); font-weight:400;">(Threshold > 15m)</span></h3>
                     <div class="delay-layout" style="display: flex; gap: 24px; flex-wrap: wrap; margin-top: 12px; flex: 1; align-items: stretch;">
                         <div style="flex: 0 0 180px; display: flex; align-items: center; justify-content: center;">
@@ -184,7 +184,7 @@
                     </div>
                 </div>
 
-                <div id="card-otp" class="card-glass span-12">
+                <div id="card-otp" class="card-glass">
                     <div style="margin-bottom: 24px;">
                         <h3 class="chart-title" style="margin-bottom: 4px;">Schedule Reliability Scorecard</h3>
                         <span style="font-size: 0.65rem; color: #eab308; background: rgba(234, 179, 8, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: 700; display: inline-block; letter-spacing: 0.05em;">BAYLINK OTP SCORING SYSTEM (POINTS BASED)</span>
@@ -219,13 +219,13 @@
                 </div>
 
                 <!-- Monthly OTP Trend -->
-                <div id="card-otp-trend" class="card-glass span-12" style="display: none;">
+                <div id="card-otp-trend" class="card-glass" style="display: none;">
                     <h3 class="chart-title">OTP Performance History</h3>
                     <div class="chart-inner" style="height: 200px;"><canvas id="otpTrendChart"></canvas></div>
                 </div>
 
                 <!-- Turnaround Time -->
-                <div id="card-turnaround" class="card-glass span-12">
+                <div id="card-turnaround" class="card-glass">
                     <h3 class="chart-title">Turnaround Efficiency Analysis</h3>
                     <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;">
                         <select id="turnaround-airline" class="glass-select" style="min-width: 160px;">
@@ -237,7 +237,7 @@
                 </div>
 
                 <!-- Taxi Time -->
-                <div id="card-taxi" class="card-glass span-12">
+                <div id="card-taxi" class="card-glass">
                     <h3 class="chart-title">Surface Navigation Metrics (Taxi)</h3>
                     <div id="taxi-stats" style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;"></div>
                     <div class="chart-inner" style="height: 200px;"><canvas id="taxiChart"></canvas></div>
