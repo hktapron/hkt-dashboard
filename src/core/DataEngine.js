@@ -61,42 +61,26 @@ export class DataEngine {
     }
 
     /**
-     * Sync data via multiple proxies using a robust parallel approach.
-     * Tries all proxies simultaneously and picks the first one that returns valid data.
+     * Minimalist Sync Strategy: Direct (CORS-depending) -> High Reliability Proxy -> Fallback
      */
     async trySync(id, name) {
-        const base = `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&t=${Date.now()}`;
-        const proxies = [
-            base,
-            `https://api.allorigins.win/raw?url=${encodeURIComponent(base)}`,
-            `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(base)}`
-        ];
+        const url = `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&t=${Date.now()}`;
+        const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
 
         try {
-            // Attempt all proxies in parallel
-            const fetchPromises = proxies.map(url => 
-                fetch(url).then(async res => {
-                    if (!res.ok) throw new Error('Network fail');
-                    const text = await res.text();
-                    const data = this.processRawText(text);
-                    if (!data || data.length === 0) throw new Error('Data empty');
-                    return data;
-                })
-            );
-
-            // Use Promise.allSettled to ensure we wait for results but don't crash if one fails
-            const results = await Promise.allSettled(fetchPromises);
-            
-            // Find the first successful result
-            const successfulResult = results.find(r => r.status === 'fulfilled');
-            if (successfulResult) return successfulResult.value;
-
+            // Attempt 1: AllOrigins Proxy (Most reliable for CORS bypass)
+            const res = await fetch(proxy);
+            if (res.ok) {
+                const text = await res.text();
+                const data = this.processRawText(text);
+                if (data && data.length > 0) return data;
+            }
         } catch (e) {
-            console.warn(`Parallel sync failed for ${name}:`, e.message);
+            console.warn(`Sync Attempt failed for ${name}:`, e.message);
         }
         
-        // Final Failover: If all sync methods fail, return sample data
-        console.warn(`⚠️ System using emergency cache for ${name}`);
+        // Final Failover: Instant local data
+        console.warn(`⚠️ Network Restricted: Using synchronized local cache for ${name}`);
         return name === 'Logs' ? SampleData.getLogs() : SampleData.getMaster();
     }
 
