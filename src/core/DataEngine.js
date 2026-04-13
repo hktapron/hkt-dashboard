@@ -61,50 +61,47 @@ export class DataEngine {
     }
 
     /**
-     * Sync data via multiple proxies using a 'Race' strategy for speed.
-     * Fastest response wins; if all fail or timeout (4s), returns null (to trigger fallback in caller).
+     * Sync data via multiple proxies using a robust parallel approach.
+     * Tries all proxies simultaneously and picks the first one that returns valid data.
      */
     async trySync(id, name) {
         const base = `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&t=${Date.now()}`;
         const proxies = [
             base,
-            `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(base)}`,
-            `https://api.allorigins.win/raw?url=${encodeURIComponent(base)}`
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(base)}`,
+            `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(base)}`
         ];
-
-        // Abort controller for the whole race
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000); // 5s absolute limit
 
         try {
             // Attempt all proxies in parallel
-            const promises = proxies.map(url => 
-                fetch(url, { signal: controller.signal })
-                    .then(async res => {
-                        if (!res.ok) throw new Error('Proxy fail');
-                        const text = await res.text();
-                        const data = this.processRawText(text);
-                        if (!data || data.length === 0) throw new Error('Empty data');
-                        return data;
-                    })
+            const fetchPromises = proxies.map(url => 
+                fetch(url).then(async res => {
+                    if (!res.ok) throw new Error('Network fail');
+                    const text = await res.text();
+                    const data = this.processRawText(text);
+                    if (!data || data.length === 0) throw new Error('Data empty');
+                    return data;
+                })
             );
 
-            // Promise.any: Return as soon as ANY promise fulfills
-            // Using a loop-based race fallback for environments without Promise.any
-            const winner = await (Promise.any ? Promise.any(promises) : Promise.race(promises));
-            return winner;
+            // Use Promise.allSettled to ensure we wait for results but don't crash if one fails
+            const results = await Promise.allSettled(fetchPromises);
+            
+            // Find the first successful result
+            const successfulResult = results.find(r => r.status === 'fulfilled');
+            if (successfulResult) return successfulResult.value;
 
         } catch (e) {
-            console.warn(`Parallel sync failed for ${name}: Using emergency fallback.`);
-            return name === 'Logs' ? SampleData.getLogs() : SampleData.getMaster();
-        } finally {
-            clearTimeout(timeout);
-            controller.abort(); // Cancel remaining requests
+            console.warn(`Parallel sync failed for ${name}:`, e.message);
         }
+        
+        // Final Failover: If all sync methods fail, return sample data
+        console.warn(`⚠️ System using emergency cache for ${name}`);
+        return name === 'Logs' ? SampleData.getLogs() : SampleData.getMaster();
     }
 
     /**
-     * Helper to process raw CSV text from proxies
+     * Process raw CSV text into objects
      */
     processRawText(text) {
         const rows = DataEngine.parseCSV(text);

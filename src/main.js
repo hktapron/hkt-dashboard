@@ -149,6 +149,17 @@ function refreshUI() {
     OTPScorecard.render(fMaster, mode, filterVal);
     MovementLogs.render(searchedLogs);
 
+    // 3. Safety Check: If no data rendered, provide feedback
+    const scorecardBody = document.querySelector('#otp-scorecard-body');
+    if (scorecardBody && fMaster.length === 0) {
+        scorecardBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--zinc-500);">No movements found for ${filterVal}</td></tr>`;
+    }
+
+    const logsBody = document.querySelector('#movement-logs-body');
+    if (logsBody && searchedLogs.length === 0) {
+        logsBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2rem; color: var(--zinc-500);">No logs matching your search.</td></tr>`;
+    }
+
     // Visibility Management
     const logsSection = document.querySelector('.logs-section');
     if (logsSection) logsSection.style.display = mode === 'monthly' ? 'none' : 'block';
