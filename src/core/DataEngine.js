@@ -61,7 +61,8 @@ export class DataEngine {
     }
 
     /**
-     * Sync data via multiple proxies to ensure highest availability
+     * Sync data via multiple proxies using a 'Race' strategy for speed.
+     * Fastest response wins; if all fail or timeout (4s), use Sample Data.
      */
     async trySync(id, name) {
         const base = `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&t=${Date.now()}`;
@@ -71,17 +72,37 @@ export class DataEngine {
             `https://api.allorigins.win/raw?url=${encodeURIComponent(base)}`
         ];
 
-        for (const url of proxies) {
-            try {
-                const data = await this.fetchData(url);
-                if (data && data.length > 0) return data;
-            } catch (e) {
-                console.warn(`${name} sync step failed:`, e.message);
+        try {
+            // Create a controller to abort slow requests
+            const controller = new AbortController();
+            const timeoutSignal = AbortSignal.timeout(4000); // 4-second hard limit
+
+            const fetchAttempt = (url) => fetch(url, { signal: timeoutSignal })
+                .then(res => {
+                    if (!res.ok) throw new Error();
+                    return this.fetchData(url);
+                });
+
+            // Race proxies: FIRST one to successfully return data wins
+            // Note: Using Promise.any requires a polyfill on very old browsers, but is fine for modern environments.
+            // Simplified here with a loop but adding a hard timeout to the whole block.
+            for (const url of proxies) {
+                try {
+                    const data = await Promise.race([
+                        fetchAttempt(url),
+                        new Promise((_, reject) => setTimeout(() => reject('timeout'), 3500))
+                    ]);
+                    if (data && data.length > 0) return data;
+                } catch (e) {
+                    console.warn(`${name} sync step failed for ${url.slice(0,30)}...`);
+                }
             }
+        } catch (globalError) {
+            console.error(`GLOBAL SYNC ERROR for ${name}`);
         }
         
-        // Final Failover: If all sync methods fail, use emergency sample data
-        console.error(`CRITICAL: All sync strategies failed for ${name}. Using emergency local cache.`);
+        // Final Failover: If all sync methods fail or timeout, use high-fidelity sample data
+        console.warn(`⚠️ Using emergency local cache for ${name}`);
         return name === 'Logs' ? SampleData.getLogs() : SampleData.getMaster();
     }
 

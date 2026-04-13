@@ -34,14 +34,22 @@ export const Validator = {
      * Sanitizes movement record
      */
     sanitizeRecord: (r) => {
-        // Essential fields check
-        if (!r['FLT'] || !r['Stand']) return null;
+        // Essential fields check - Support multiple naming conventions
+        const flt = r['Flight In'] || r['FLIGHT'] || r['FLT'] || r['Flight'];
+        const stand = r['Final Bay'] || r['Stand'] || r['Original Bay'] || r['Bay'];
+
+        // If no identifying flight or stand info, ignore record
+        if (!flt && !stand) return null;
         
         // Ensure numeric consistency for duration fields if they exist
         const numericFields = ['GroundTime', 'TaxiIn', 'TaxiOut'];
         numericFields.forEach(f => {
             if (r[f]) r[f] = parseInt(r[f]) || 0;
         });
+
+        // Add standardized helper keys for components
+        r._standard_flt = flt || '-';
+        r._standard_stand = stand || '-';
 
         return r;
     }
