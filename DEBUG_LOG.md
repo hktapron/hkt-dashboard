@@ -18,11 +18,10 @@ This file is a mandatory memory bank for self-debugging and AI logic protection.
 
 ## 🛠️ Current Debugging Session (Live Loop)
 
-### [Template: Copy this for new bugs]
-> **Bug Name**: short-description
-> - **Hypothesis**: what-is-causing-it
-> - **Attempt 1**: description-of-method
-> - **Result**: [Failure Reason / Success Code Snippet]
+> **Bug Name**: Critical Data Sync Failure (Master)
+> - **Hypothesis**: The modular refactor of `DataEngine.js` omitted the "Emergency Local Cache" (Sample Data) fallback. When AllOrigins or CodeTabs proxies fail, the engine throws a hard error instead of gracefully degrading to sample data.
+> - **Attempt 1**: Re-implement `getSampleMaster` and `getSampleLogs` within a new modular utility and integrate it as a failover in `DataEngine.js`.
+> - **Result**: [Work in Progress]
 
 ---
 *Maintained by: Antigravity AI Protocol v1.0*

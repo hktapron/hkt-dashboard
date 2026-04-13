@@ -3,8 +3,9 @@
  * Orchestrates CSV fetching, parsing, and multi-proxied failover synchronization.
  */
 
-import { CONFIG, getCsvUrl } from './Config.js';
+import { CONFIG } from './Config.js';
 import { Validator } from '../utils/Validator.js';
+import { SampleData } from '../utils/SampleData.js';
 
 export class DataEngine {
     constructor() {
@@ -56,7 +57,7 @@ export class DataEngine {
             headers.forEach((h, i) => { if (h) obj[h] = (row[i] || '').trim(); });
             // Apply Data Integrity Validation
             return Validator.sanitizeRecord(obj);
-        }).filter(Boolean); // Remote invalid records
+        }).filter(Boolean); // Remove invalid records
     }
 
     /**
@@ -78,7 +79,10 @@ export class DataEngine {
                 console.warn(`${name} sync step failed:`, e.message);
             }
         }
-        throw new Error(`CRITICAL: All sync strategies failed for ${name}.`);
+        
+        // Final Failover: If all sync methods fail, use emergency sample data
+        console.error(`CRITICAL: All sync strategies failed for ${name}. Using emergency local cache.`);
+        return name === 'Logs' ? SampleData.getLogs() : SampleData.getMaster();
     }
 
     async init() {
