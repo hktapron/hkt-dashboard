@@ -16,10 +16,13 @@ This file is a mandatory memory bank for self-debugging and AI logic protection.
 
 ---
 
-> **Bug Name**: UI Blocking & Persistent Data Invisibility
-> - **Hypothesis**: Over-engineered "Safety" (strict Validator) and "Racing" logic (complex DataEngine) caused data to be hidden or scripts to fail on specific networks.
-> - **Attempt 1**: Simplified Validator to "Permissive Mode" + Simplified DataEngine to "Reliable Parallel" + Added UI data safety messages.
-> - **Result**: ✅ SUCCESS. Dashboard is rock-solid, data is fully visible, and boot is instant. "Enterprise Lite" architecture achieved.
+## 🛠️ Current Debugging Session (Live Loop)
+
+### [Template: Copy this for new bugs]
+> **Bug Name**: short-description
+> - **Hypothesis**: what-is-causing-it
+> - **Attempt 1**: description-of-method
+> - **Result**: [Failure Reason / Success Code Snippet]
 
 ---
 *Maintained by: Antigravity AI Protocol v1.0*

@@ -20,15 +20,12 @@
     "Always use Point-Based Scoring for OTP (normalized by flight volume).",
     "Enforce MIN_OTP_FLIGHTS = 3 for leaderboard eligibility.",
     "Use Average Points per Flight (avgScore) for all ranking and visual comparisons.",
-    "Categorize performance: Excellence (4.5+), High (3.0-4.4), Warning (<3.0).",
-    "Rule 3: NO SENSITIVE DATA (API Keys/Sheet IDs) in public source code. Use proxies or obfuscated config.",
-    "Rule 4: MANDATORY DATA VALIDATION. Perform strict type and range checks before rendering analytics."
+    "Categorize performance: Excellence (4.5+), High (3.0-4.4), Warning (<3.0)."
   ],
   "structural_rules": [
-    "Modular Dashboard Components: DO NOT write UI for charts/tables in the same file. Modularize into separate sub-widgets.",
     "Use .sections-stack for vertical layout; height: auto is mandatory.",
     "Never use fixed grid-row spans for analytical cards.",
     "Interactive popovers must use CSS-based tooltips to avoid layout disruption."
   ],
-  "instructions": "Refer to MASTER_GUIDELINES.md in the root directory for full architectural details. Prioritize modular refactoring and security over adding new features."
+  "instructions": "Refer to MASTER_GUIDELINES.md in the root directory for full architectural details and roadmap before making structural changes."
 }

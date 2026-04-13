@@ -15,11 +15,8 @@ The **Baylink HKT Dashboard** is a high-fidelity apron management system for Phu
 
 ### Core Structure
 - `index.html`: The structural backbone. Uses a flex-sidebar and a vertical-stack main content area.
-- `style.css`: Contains the entire design system, tokens, and component styles.
-- `src/`: (New Modular Structure)
-  - `components/`: UI Widgets (Charts, Tables, KPIs).
-  - `core/`: Engine logic, CSV parsing, and scoring.
-  - `utils/`: Data validation and security proxies.
+- `style.css`: Contains the entire design system, including CSS variables (tokens) and component styles (card-glass, sections-stack).
+- `app.js`: The "Engine". Handles CSV parsing, flight data filtering, OTP scoring logic, and chart orchestration.
 
 ---
 
@@ -42,19 +39,7 @@ The following modules are fully developed and should not be refactored without e
 
 > [!CAUTION]
 > **Rule 2: Statistical Significance (The 3-Flight Rule)**
-> To prevent small-sample bias, the Excellence Leaderboard MUST filter out airlines with fewer than **3 valid flights** (`MIN_OTP_FLIGHTS = 3`).
-
-> [!WARNING]
-> **Rule 3: Security & Data Privacy**
-> NO API Keys, Sheet IDs, or Service Account Keys in source code. Use environment-based proxies or obfuscated JSON for public hosting.
-
-> [!IMPORTANT]
-> **Rule 4: Modular Architecture**
-> UI Widgets (Charts/Tables) must NOT be unified in a single file. Each component must be modularized for independent state management and scaling.
-
-> [!CAUTION]
-> **Rule 5: Data Integrity Validation**
-> Since source data is user-editable (Google Sheets), logic must perform strict type checking and range validation before rendering any analytic.
+> To prevent small-sample bias, the Excellence Leaderboard MUST filter out airlines with fewer than **3 valid flights** (`MIN_OTP_FLIGHTS = 3`). Do not remove this filter.
 
 ### UI & Styling Standards
 - **Vertical Flow**: Main content cards MUST be wrapped in `.sections-stack` with `height: auto`. NEVER set fixed `grid-row` spans for analytical cards.
