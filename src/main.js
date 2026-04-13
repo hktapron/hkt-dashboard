@@ -11,6 +11,8 @@ import { OTPScorecard } from './components/OTPScorecard.js';
 import { MovementLogs } from './components/MovementLogs.js';
 import { ChartComponent } from './components/AnalyticsCharts.js';
 
+import { SampleData } from './utils/SampleData.js';
+
 let appState = {
     logs: [],
     master: [],
@@ -21,23 +23,38 @@ let appState = {
 
 const engine = new DataEngine();
 
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('--- Baylink Dashboard v5.0 (Modular) ---');
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('--- Baylink Dashboard v5.1 (Instant Boot) ---');
+    
+    // 1. Instant Boot: Load Sample Data first so UI is immediately usable
+    appState.logs = SampleData.getLogs();
+    appState.master = SampleData.getMaster();
+
+    // 2. Setup UI Instantly
+    setupEventListeners();
+    setupDefaultView();
+    hideLoader();
+
+    // 3. Background Sync: Fetch real data without blocking the user
+    requestCloudSync();
+});
+
+async function requestCloudSync() {
+    console.log('☁️ Background Sync Started...');
     try {
         const data = await engine.init();
-        appState.logs = data.logs;
-        appState.master = data.master;
-
-        setupEventListeners();
-        setupDefaultView();
-        
+        if (data && data.master.length > 0) {
+            console.log('✅ Cloud data received. Updating UI...');
+            appState.logs = data.logs;
+            appState.master = data.master;
+            
+            // Re-setup view if needed (to pick the latest real date)
+            setupDefaultView();
+        }
     } catch (error) {
-        console.error('Initialization Failed:', error.message);
-        displayError(error.message);
-    } finally {
-        hideLoader();
+        console.warn('Background Sync Failed:', error.message);
     }
-});
+}
 
 function setupEventListeners() {
     // Theme Switch

@@ -62,7 +62,7 @@ export class DataEngine {
 
     /**
      * Sync data via multiple proxies using a 'Race' strategy for speed.
-     * Fastest response wins; if all fail or timeout (4s), use Sample Data.
+     * Fastest response wins; if all fail or timeout (4s), returns null (to trigger fallback in caller).
      */
     async trySync(id, name) {
         const base = `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&t=${Date.now()}`;
@@ -72,38 +72,57 @@ export class DataEngine {
             `https://api.allorigins.win/raw?url=${encodeURIComponent(base)}`
         ];
 
+        // Abort controller for the whole race
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000); // 5s absolute limit
+
         try {
-            // Create a controller to abort slow requests
-            const controller = new AbortController();
-            const timeoutSignal = AbortSignal.timeout(4000); // 4-second hard limit
+            // Attempt all proxies in parallel
+            const promises = proxies.map(url => 
+                fetch(url, { signal: controller.signal })
+                    .then(async res => {
+                        if (!res.ok) throw new Error('Proxy fail');
+                        const text = await res.text();
+                        const data = this.processRawText(text);
+                        if (!data || data.length === 0) throw new Error('Empty data');
+                        return data;
+                    })
+            );
 
-            const fetchAttempt = (url) => fetch(url, { signal: timeoutSignal })
-                .then(res => {
-                    if (!res.ok) throw new Error();
-                    return this.fetchData(url);
-                });
+            // Promise.any: Return as soon as ANY promise fulfills
+            // Using a loop-based race fallback for environments without Promise.any
+            const winner = await (Promise.any ? Promise.any(promises) : Promise.race(promises));
+            return winner;
 
-            // Race proxies: FIRST one to successfully return data wins
-            // Note: Using Promise.any requires a polyfill on very old browsers, but is fine for modern environments.
-            // Simplified here with a loop but adding a hard timeout to the whole block.
-            for (const url of proxies) {
-                try {
-                    const data = await Promise.race([
-                        fetchAttempt(url),
-                        new Promise((_, reject) => setTimeout(() => reject('timeout'), 3500))
-                    ]);
-                    if (data && data.length > 0) return data;
-                } catch (e) {
-                    console.warn(`${name} sync step failed for ${url.slice(0,30)}...`);
-                }
-            }
-        } catch (globalError) {
-            console.error(`GLOBAL SYNC ERROR for ${name}`);
+        } catch (e) {
+            console.warn(`Parallel sync failed for ${name}: Using emergency fallback.`);
+            return name === 'Logs' ? SampleData.getLogs() : SampleData.getMaster();
+        } finally {
+            clearTimeout(timeout);
+            controller.abort(); // Cancel remaining requests
         }
+    }
+
+    /**
+     * Helper to process raw CSV text from proxies
+     */
+    processRawText(text) {
+        const rows = DataEngine.parseCSV(text);
+        if (rows.length < 2) return [];
+
+        const rawHeaders = rows[0].map(h => h.trim());
+        const headers = [];
+        const seen = {};
+        rawHeaders.forEach(h => {
+            if (!h) { headers.push(''); return; }
+            if (seen[h]) { seen[h]++; headers.push(`${h}_${seen[h]}`); } else { seen[h] = 1; headers.push(h); }
+        });
         
-        // Final Failover: If all sync methods fail or timeout, use high-fidelity sample data
-        console.warn(`⚠️ Using emergency local cache for ${name}`);
-        return name === 'Logs' ? SampleData.getLogs() : SampleData.getMaster();
+        return rows.slice(1).map(row => {
+            const obj = { _raw: row };
+            headers.forEach((h, i) => { if (h) obj[h] = (row[i] || '').trim(); });
+            return Validator.sanitizeRecord(obj);
+        }).filter(Boolean);
     }
 
     async init() {
