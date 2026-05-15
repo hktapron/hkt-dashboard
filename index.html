@@ -163,14 +163,14 @@
                         <div class="chart-inner" style="height: 200px;"><canvas id="monthlyFlightsChart"></canvas></div>
                     </div>
                     <div class="card-glass">
-                        <h3 class="chart-title">Monthly Total Bay Changes</h3>
+                        <h3 class="chart-title">Monthly Total Bay Changes <div class="info-tooltip-wrapper"><svg class="info-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><div class="info-tooltip-box"><strong style="color:var(--primary);display:block;margin-bottom:4px;font-size:0.8rem;">Monthly Total Bay Changes</strong>จำนวนครั้งรวมที่มีการเปลี่ยน Bay ในแต่ละเดือน นับจากคอลัมน์ N P R T V (การเปลี่ยนครั้งที่ 1-5) รวมทุก Aircraft ในเดือนนั้น</div></div></h3>
                         <div class="chart-inner" style="height: 200px;"><canvas id="monthlyChangesChart"></canvas></div>
                     </div>
                 </div>
 
                 <!-- Delay Analysis -->
                 <div id="card-delay" class="card-glass" style="display: flex; flex-direction: column;">
-                    <h3 class="chart-title">Delay Performance Analysis <span id="delay-threshold-note" style="font-size:0.7rem; color:var(--text-dim); font-weight:400;">(Threshold > 15m)</span></h3>
+                    <h3 class="chart-title">Delay Performance Analysis <span id="delay-threshold-note" style="font-size:0.7rem; color:var(--text-dim); font-weight:400;">(Threshold > 15m)</span> <div class="info-tooltip-wrapper"><svg class="info-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><div class="info-tooltip-box"><strong style="color:var(--primary);display:block;margin-bottom:4px;font-size:0.8rem;">Delay Performance Analysis</strong><div style="margin-bottom:6px;"><span style="color:var(--text-muted);font-weight:600;">วงกลม:</span> สัดส่วน On-Time / ล่าช้า 16-30m / ล่าช้า >30m</div><div style="margin-bottom:6px;"><span style="color:var(--text-muted);font-weight:600;">คำนวณจาก:</span><br>Arrival delay = ALDT − SIBT<br>Departure delay = ATOT − SOBT</div><div>เที่ยวบินที่ล่าช้า ≤15m ถือว่า On-Time</div></div></div></h3>
                     <div class="delay-layout" style="display: flex; gap: 24px; flex-wrap: wrap; margin-top: 12px; flex: 1; align-items: stretch;">
                         <div style="flex: 0 0 180px; display: flex; align-items: center; justify-content: center;">
                             <div style="width: 100%; height: 180px;"><canvas id="delayDistChart"></canvas></div>
@@ -227,11 +227,11 @@
                     <!-- Row 2: Charts (Vertical Stack on Mobile, Horizontal on Desktop) -->
                     <div style="display: flex; flex-direction: column; gap: 24px; flex: 1; border-top: 1px solid var(--border-subtle); padding-top: 16px;" class="md-row-layout">
                         <div style="flex: 1; width: 100%; min-height: 250px;">
-                            <h4 style="font-size: 0.65rem; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; font-weight: 700;">Avg Schedule Variance per Airline</h4>
+                            <h4 style="font-size: 0.65rem; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; font-weight: 700;">Avg Schedule Variance per Airline <div class="info-tooltip-wrapper"><svg class="info-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><div class="info-tooltip-box"><strong style="color:var(--primary);display:block;margin-bottom:4px;font-size:0.8rem;">Avg Schedule Variance per Airline</strong><div style="margin-bottom:6px;">คะแนนเฉลี่ยต่อเที่ยวบินของแต่ละสายการบิน ยิ่งสูงยิ่งดี</div><div style="margin-bottom:4px;"><span style="color:#10b981;font-weight:600;">+3</span> Arr ±5m | <span style="color:#10b981;font-weight:600;">+1</span> Early 6-20m</div><div style="margin-bottom:4px;"><span style="color:#f59e0b;font-weight:600;">+3</span> Dep Early | <span style="color:#f59e0b;font-weight:600;">+2</span> Late 0-5m</div><div><span style="color:#f43f5e;font-weight:600;">-1</span> Arr Late >15m | <span style="color:#f43f5e;font-weight:600;">-1/-2</span> Dep Late 21m+</div></div></div></h4>
                             <div class="chart-inner" style="height: 250px;"><canvas id="otpAirlineChart"></canvas></div>
                         </div>
                         <div style="flex: 1; width: 100%; min-height: 250px;">
-                            <h4 style="font-size: 0.65rem; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; font-weight: 700;">Avg Schedule Variance per Time Slot</h4>
+                            <h4 style="font-size: 0.65rem; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; font-weight: 700;">Avg Schedule Variance per Time Slot <div class="info-tooltip-wrapper"><svg class="info-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><div class="info-tooltip-box"><strong style="color:var(--primary);display:block;margin-bottom:4px;font-size:0.8rem;">Avg Schedule Variance per Time Slot</strong><div style="margin-bottom:6px;">คะแนนเฉลี่ยของเที่ยวบินทุกสายในแต่ละช่วงเวลา (ดูจาก ALDT หรือ SIBT)</div><div style="margin-bottom:6px;"><span style="color:#10b981;font-weight:600;">บวก</span> = ช่วงเวลานั้นเที่ยวบินส่วนใหญ่ตรงเวลา/เร็ว</div><div><span style="color:#f43f5e;font-weight:600;">ลบ</span> = ช่วงเวลานั้นเที่ยวบินส่วนใหญ่ล่าช้าจนโดนหักคะแนน เช่น Arr >15m หรือ Dep >21m</div></div></div></h4>
                             <div class="chart-inner" style="height: 250px;"><canvas id="otpTimeslotChart"></canvas></div>
                         </div>
                     </div>
@@ -245,7 +245,7 @@
 
                 <!-- Turnaround Time -->
                 <div id="card-turnaround" class="card-glass">
-                    <h3 class="chart-title">Turnaround Efficiency Analysis</h3>
+                    <h3 class="chart-title">Turnaround Efficiency Analysis <div class="info-tooltip-wrapper"><svg class="info-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><div class="info-tooltip-box"><strong style="color:var(--primary);display:block;margin-bottom:4px;font-size:0.8rem;">Turnaround Efficiency Analysis</strong><div style="margin-bottom:6px;">เวลาที่เครื่องบินอยู่บนพื้น = AOBT − AIBT (ถ้ามี Actual) หรือ SOBT − SIBT (ถ้าไม่มี)</div><div style="margin-bottom:4px;"><span style="color:#10b981;font-weight:600;">สีเขียว</span> = ข้อมูล Actual (AIBT/AOBT)</div><div><span style="color:#64748b;font-weight:600;">สีเทา</span> = ข้อมูล Schedule (SIBT/SOBT)</div></div></div></h3>
                     <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;">
                         <select id="turnaround-airline" class="glass-select" style="min-width: 160px;">
                             <option value="all">All Carriers</option>
@@ -266,7 +266,7 @@
             <!-- Bay Change Reasons + Flow Dynamics -->
             <div style="display: grid; grid-template-columns: 8fr 4fr; gap: 16px; margin-bottom: 20px;">
                 <div id="card-reasons" class="card-glass" style="height: auto;">
-                    <h3 class="chart-title">Bay Change Reasons</h3>
+                    <h3 class="chart-title">Bay Change Reasons <div class="info-tooltip-wrapper"><svg class="info-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><div class="info-tooltip-box"><strong style="color:var(--primary);display:block;margin-bottom:4px;font-size:0.8rem;">Bay Change Reasons</strong><div style="margin-bottom:6px;">สาเหตุที่พบบ่อยที่สุดในการเปลี่ยน Bay อ่านจากคอลัมน์ O (เหตุผลการเปลี่ยนครั้งที่ 1)</div><div>ตัวเลขด้านขวา = จำนวนครั้งที่พบสาเหตุนั้นในวัน/เดือนที่เลือก</div></div></div></h3>
                     <div class="reasons-container" style="margin-top: 4px; gap: 16px;">
                         <div style="flex: 1; min-width: 200px;">
                             <canvas id="reasonsChart" style="max-height: 150px;"></canvas>
@@ -275,7 +275,7 @@
                     </div>
                 </div>
                 <div id="card-flow" class="card-glass">
-                    <h3 class="chart-title">Flow Dynamics</h3>
+                    <h3 class="chart-title">Flow Dynamics <div class="info-tooltip-wrapper"><svg class="info-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><div class="info-tooltip-box"><strong style="color:var(--primary);display:block;margin-bottom:4px;font-size:0.8rem;">Flow Dynamics</strong><div style="margin-bottom:6px;">นับจำนวนครั้งที่มีการย้าย Bay ระหว่าง Contact (4-15) และ Remote (1-3, 16, 31-40)</div><div style="margin-bottom:4px;"><span style="color:var(--text-muted);font-weight:600;">R→C</span> Remote ย้ายไป Contact</div><div style="margin-bottom:4px;"><span style="color:var(--text-muted);font-weight:600;">C→R</span> Contact ย้ายไป Remote</div><div style="margin-bottom:4px;"><span style="color:var(--text-muted);font-weight:600;">C→C</span> ย้ายภายใน Contact</div><div><span style="color:var(--text-muted);font-weight:600;">R→R</span> ย้ายภายใน Remote</div></div></div></h3>
                     <div style="display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 8px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span style="color:var(--text-muted); font-weight:500;">Remote → Contact</span><span id="flow-r-c" style="font-weight:800; font-size:1.1rem; color:var(--primary);">0</span></div>
                         <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span style="color:var(--text-muted); font-weight:500;">Contact → Remote</span><span id="flow-c-r" style="font-weight:800; font-size:1.1rem; color:var(--primary);">0</span></div>
