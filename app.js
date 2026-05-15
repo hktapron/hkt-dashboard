@@ -619,7 +619,7 @@ function renderCompareCharts(scope, m1, m2, l1, l2, v1, v2) {
             m.forEach(r => {
                 const d = getRecordDate(r.Date || (r._raw && r._raw[0]));
                 if (!d || d.month !== mon || d.year !== year) return;
-                trend[d.day] = (trend[d.day] || 0) + (isFlight(r._raw[3])?1:0) + (isFlight(r._raw[5])?1:0);
+                trend[d.day] = (trend[d.day] || 0) + (isFlight(r._raw[5])?1:0) + (isFlight(r._raw[7])?1:0);
             });
             return trend;
         };
@@ -645,20 +645,15 @@ function updateMasterMetrics(data, logs) {
     const counts = { aircraft: data.length, flights: 0, changes: 0 };
     data.forEach(r => {
         const raw = r._raw || [];
-        const flightIn = r['FLIGHT'] || '';
-        const flightOut = r['FLIGHT_2'] || '';
+        const flightIn = r['A.FLIGHT'] || '';
+        const flightOut = r['D.FLIGHT'] || '';
         if (isFlight(flightIn)) counts.flights++;
         if (isFlight(flightOut)) counts.flights++;
+        // Count bay changes: N,P,R,T,V = indices 13,15,17,19,21 (step +2)
+        for (let i = 13; i <= 21; i += 2) {
+            if ((raw[i] || '').trim() !== '') counts.changes++;
+        }
     });
-    // Count bay changes from logs - Bay History at indices 13, 17, 21, 25...
-    if (logs) {
-        logs.forEach(r => {
-            const raw = r._raw || [];
-            for (let i = 13; i < raw.length; i += 4) {
-                if ((raw[i] || '').trim() !== '') counts.changes++;
-            }
-        });
-    }
     document.getElementById('master-total-ac').textContent = counts.aircraft;
     document.getElementById('master-total-flights').textContent = counts.flights;
     document.getElementById('master-total-change').textContent = counts.changes;
@@ -694,12 +689,12 @@ function parseMasterDateTime(timeStr, obsDateStr, defaultTimeStr = null) {
 
 function getFinalBay(r) {
     if (!r || !r._raw) return null;
-    const priorityIndices = [17, 15, 13, 11, 9]; // R, P, N, L, J
+    const priorityIndices = [21, 19, 17, 15, 13]; // V, T, R, P, N (last change wins)
     for (const idx of priorityIndices) {
         const val = (r._raw[idx] || '').trim();
         if (val && val !== '') return val;
     }
-    return (r._raw[7] || '').trim(); // Fallback to H
+    return (r._raw[11] || '').trim(); // Fallback to Bay (L)
 }
 
 function classifyBay(bay) {
@@ -902,10 +897,10 @@ function renderCharts(logs, master, mode, filterValue) {
             if (!dObj || dObj.month !== fMonth || dObj.year !== fYear) return;
             if (!trend[dObj.day]) trend[dObj.day] = { flights: 0, changes: 0 };
             const raw = r._raw || [];
-            if (isFlight(raw[3])) trend[dObj.day].flights++;
-            if (isFlight(raw[5])) trend[dObj.day].flights++;
-            // Bay changes: truthy check
-            [9, 11, 13, 15, 17].forEach(idx => { if ((raw[idx] || '').trim() !== '') trend[dObj.day].changes++; });
+            if (isFlight(raw[5])) trend[dObj.day].flights++; // A.FLIGHT (F)
+            if (isFlight(raw[7])) trend[dObj.day].flights++; // D.FLIGHT (H)
+            // Bay changes: N,P,R,T,V = indices 13,15,17,19,21
+            [13, 15, 17, 19, 21].forEach(idx => { if ((raw[idx] || '').trim() !== '') trend[dObj.day].changes++; });
         });
 
         const labels = Object.keys(trend).sort((a,b)=>Number(a)-Number(b));
@@ -1115,7 +1110,7 @@ function initChart(id, type, data, options = {}) {
 function getAirlineCode(flightStr) {
     if (!flightStr) return null;
     const clean = flightStr.trim();
-    const match = clean.match(/^([A-Z0-9]{2})\s*\d+/i);
+    const match = clean.match(/^([A-Z0-9]{2,4})\s*\d+/i);
     return match ? match[1].toUpperCase() : null;
 }
 
@@ -1165,13 +1160,13 @@ function renderDelaySection(master, mode, filterValue) {
     const airlineDelays = {};
     
     master.forEach(r => {
-        const flightIn = r['FLIGHT'] || '';
-        const flightOut = r['FLIGHT_2'] || '';
+        const flightIn = r['A.FLIGHT'] || '';
+        const flightOut = r['D.FLIGHT'] || '';
         const aldt = (r['ALDT'] || '').trim();
         const sibt = (r['SIBT'] || '').trim();
         const atot = (r['ATOT'] || '').trim();
         const sobt = (r['SOBT'] || '').trim();
-        
+
         const airline = getAirlineCode(flightIn) || getAirlineCode(flightOut) || getAirlineCode(r['Callsign'] || '');
         if (!airline) return;
         
@@ -1281,16 +1276,16 @@ function renderOTPSection(master, mode, filterValue) {
     const excellenceData = {};
     
     master.forEach(r => {
-        const flightIn = r['FLIGHT'] || '';
-        const flightOut = r['FLIGHT_2'] || '';
+        const flightIn = r['A.FLIGHT'] || '';
+        const flightOut = r['D.FLIGHT'] || '';
         const airline = getAirlineCode(flightIn) || getAirlineCode(flightOut) || getAirlineCode(r['Callsign'] || '');
         if (!airline) return;
-        
+
         const aldt = (r['ALDT'] || '').trim();
         const sibt = (r['SIBT'] || '').trim();
         const atot = (r['ATOT'] || '').trim();
         const sobt = (r['SOBT'] || '').trim();
-        
+
         const effectiveArr = aldt || sibt;
         const tp = parseTimeWithDay(effectiveArr);
         const hour = tp ? tp.hours : null;
@@ -1467,8 +1462,8 @@ function renderTurnaroundSection(master) {
     const airlines = new Set();
     
     master.forEach(r => {
-        const flightIn = r['FLIGHT'] || '';
-        const airline = getAirlineCode(flightIn) || getAirlineCode(r['Callsign'] || '');
+        const flightIn = r['A.FLIGHT'] || '';
+        const airline = getAirlineCode(flightIn) || getAirlineCode(r['D.FLIGHT'] || '') || getAirlineCode(r['Callsign'] || '');
         if (!airline) return;
         airlines.add(airline);
         
