@@ -153,6 +153,12 @@ async function fetchAllData() {
         }
         
         console.error(`All sync methods failed for ${name}. Using emergency local cache.`);
+        const banner = document.getElementById('offline-banner');
+        const bannerText = document.getElementById('offline-banner-text');
+        if (banner && bannerText) {
+            bannerText.textContent = `⚠️ ไม่สามารถโหลดข้อมูล ${name} จาก Google Sheets ได้ — กำลังแสดงข้อมูลตัวอย่างชั่วคราว กรุณาตรวจสอบการเชื่อมต่อ`;
+            banner.style.display = 'flex';
+        }
         return name === 'Logs' ? getSampleLogs() : getSampleMaster();
     };
 
@@ -371,24 +377,22 @@ function setupDatePicker() {
  */
 function dismissPicker(el) {
     if (!el) return;
+    // iOS Safari: readOnly toggle forces picker to close reliably
+    el.readOnly = true;
     el.blur();
-    
-    // Create a temporary focusable element to steal focus from the system picker
-    const temp = document.createElement('input');
-    temp.setAttribute('type', 'text');
-    temp.style.position = 'fixed';
-    temp.style.top = '-100px';
-    temp.style.left = '-100px';
-    temp.style.opacity = '0';
-    document.body.appendChild(temp);
-    
-    temp.focus();
-    
-    // Small delay to ensure the system UI retracts, then clean up
-    setTimeout(() => {
-        temp.blur();
-        document.body.removeChild(temp);
-    }, 10);
+    requestAnimationFrame(() => {
+        el.readOnly = false;
+        // Fallback: steal focus via off-screen element for older iOS
+        const temp = document.createElement('input');
+        temp.setAttribute('type', 'text');
+        temp.style.cssText = 'position:fixed;top:-100px;left:-100px;opacity:0;';
+        document.body.appendChild(temp);
+        temp.focus();
+        setTimeout(() => {
+            temp.blur();
+            document.body.removeChild(temp);
+        }, 50);
+    });
 }
 
 // Minimal Sample Data for Failover
@@ -1065,7 +1069,7 @@ const externalTooltipHandler = (context) => {
 
 function initChart(id, type, data, options = {}) {
     if (typeof Chart === 'undefined') return;
-    if (charts[id]) charts[id].destroy();
+    if (charts[id]) { charts[id].destroy(); delete charts[id]; }
     const canvas = document.getElementById(id);
     if (!canvas) return;
     
@@ -1121,7 +1125,7 @@ function parseTimeWithDay(timeStr) {
     if (parts.length < 2) return null;
     const h = parseInt(parts[0]);
     const m = parseInt(parts[1]);
-    if (isNaN(h) || isNaN(m)) return null;
+    if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) return null;
     const day = dayPart ? parseInt(dayPart) : 0;
     return { hours: h, minutes: m, day: isNaN(day) ? 0 : day, totalMinutes: (isNaN(day) ? 0 : day) * 1440 + h * 60 + m };
 }
