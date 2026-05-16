@@ -14,6 +14,27 @@ let logsData = [];
 let masterData = [];
 let charts = {};
 
+// Global plugin: show "ไม่มีข้อมูล" when chart has no data
+const noDataPlugin = {
+    id: 'noDataPlugin',
+    afterDraw(chart) {
+        const hasData = chart.data.datasets.some(ds =>
+            ds.data && ds.data.some(v => v !== null && v !== undefined && v !== 0 && v !== '')
+        );
+        if (hasData) return;
+        const { ctx, chartArea } = chart;
+        if (!chartArea) return;
+        const { left, top, width, height } = chartArea;
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#52525b';
+        ctx.font = '13px sans-serif';
+        ctx.fillText('ไม่มีข้อมูลในช่วงเวลานี้', left + width / 2, top + height / 2);
+        ctx.restore();
+    }
+};
+
 // Theme Logic
 document.getElementById('checkbox').addEventListener('change', function() {
     if(this.checked) {
@@ -481,20 +502,26 @@ function renderDashboard(mode, filterValue, searchTerm = '') {
         return mode === 'daily' ? dObj.iso === filterValue : dObj.monthKey === filterValue;
     });
     
-    const searchedLogs = fLogs.filter(r => 
-        (r['Flight In'] || '').toLowerCase().includes(searchTerm) || 
-        (r['Flight Out'] || '').toLowerCase().includes(searchTerm)
-    );
+    const term = searchTerm.toLowerCase();
+    const searchedLogs = term ? fLogs.filter(r =>
+        (r['Flight In'] || '').toLowerCase().includes(term) ||
+        (r['Flight Out'] || '').toLowerCase().includes(term)
+    ) : fLogs;
+    const searchedMaster = term ? fMaster.filter(r =>
+        (r['A.FLIGHT'] || '').toLowerCase().includes(term) ||
+        (r['D.FLIGHT'] || '').toLowerCase().includes(term) ||
+        (r['Callsign'] || '').toLowerCase().includes(term)
+    ) : fMaster;
 
-    updateMasterMetrics(fMaster, fLogs);
-    updateFlowStats(fLogs);
-    renderCharts(fLogs, fMaster, mode, filterValue);
+    updateMasterMetrics(searchedMaster, searchedLogs);
+    updateFlowStats(searchedLogs);
+    renderCharts(searchedLogs, searchedMaster, mode, filterValue);
     updateTable(searchedLogs);
-    updateDataCoverage(fMaster);
-    renderDelaySection(fMaster, mode, filterValue);
-    renderOTPSection(fMaster, mode, filterValue);
-    renderTurnaroundSection(fMaster);
-    renderTaxiTimeSection(fMaster);
+    updateDataCoverage(searchedMaster);
+    renderDelaySection(searchedMaster, mode, filterValue);
+    renderOTPSection(searchedMaster, mode, filterValue);
+    renderTurnaroundSection(searchedMaster);
+    renderTaxiTimeSection(searchedMaster);
     
     // Visibility Management
     const monthlyTrends = document.getElementById('monthly-trends-container');
@@ -1078,11 +1105,11 @@ function initChart(id, type, data, options = {}) {
     const gridColor = isDark ? '#27272a' : '#e4e4e7';
     
     charts[id] = new Chart(canvas.getContext('2d'), {
-        type, data, options: { 
-            responsive: true, maintainAspectRatio: false, 
+        type, data, plugins: [noDataPlugin], options: {
+            responsive: true, maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             hover: { mode: 'index', intersect: false },
-            plugins: { 
+            plugins: {
                 legend: { display: false },
                 tooltip: { 
                     enabled: false,
