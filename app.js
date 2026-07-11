@@ -416,15 +416,31 @@ function dismissPicker(el) {
     });
 }
 
-// Minimal Sample Data for Failover
+// Minimal Sample Data for Failover — kept in sync with current Master/Logs sheet layout
 function getSampleMaster() {
-    const d = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
-    return [{ Date: d, Callsign: 'AIQ3160', FLIGHT: '650', FLIGHT_2: '651', 'A/C': 'HS-BBC', _raw: [d, 'AIQ3160', '08:00', '650', 'HS-BBC', '651', '09:00', '', '', '1'] }];
+    const d = new Date().toLocaleDateString('en-US'); // M/D/YYYY, matches live sheet format
+    const raw = [d, 'AIQ3160', '08:00', '08:05', '08:10', 'AIQ650', 'HS-BBC',
+                 'AIQ651', '09:00', '08:55', '09:05', '10', '10', '', '', '', '', '', '', '', '', ''];
+    return [{
+        Date: d, Callsign: 'AIQ3160', SIBT: '08:00', ALDT: '08:05', AIBT: '08:10',
+        'A.FLIGHT': 'AIQ650', 'A/C': 'HS-BBC', 'D.FLIGHT': 'AIQ651',
+        SOBT: '09:00', AOBT: '08:55', ATOT: '09:05', Bay: '10', Gate: '10',
+        _raw: raw
+    }];
 }
 
 function getSampleLogs() {
-    const d = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
-    return [{ Date: d, 'Flight In': 'AIQ650', 'Flight Out': 'AIQ651', 'A/C Type': 'A320', 'SIBT': '08:00', 'SOBT': '09:00', 'Original Bay': '10', 'Final Bay': '12', 'Bay Reason 1': 'Stand Occ, KS', _raw: [] }];
+    const d = new Date().toLocaleDateString('en-US');
+    const raw = [d, '08:00', '08:05', '08:10', 'AIQ650', 'A320', 'AIQ651',
+                 '09:00', '08:55', '09:05', '10', '10', '12', '12', 'Stand Occ, KS'];
+    return [{
+        Date: d, SIBT: '08:00', ALDT: '08:05', AIBT: '08:10',
+        'Flight In': 'AIQ650', 'A/C Type': 'A320', 'Flight Out': 'AIQ651',
+        SOBT: '09:00', AOBT: '08:55', ATOT: '09:05',
+        'Original Bay': '10', 'Original Gate': '10', 'Final Bay': '12',
+        'Bay History 1': '12', 'Bay Reason 1': 'Stand Occ, KS',
+        _raw: raw
+    }];
 }
 
 function setupSearch() {
@@ -533,6 +549,16 @@ function renderDashboard(mode, filterValue, searchTerm = '') {
 
     const otpTrend = document.getElementById('card-otp-trend');
 
+    // Restore cards that Compare mode may have hidden
+    const cardDelay = document.getElementById('card-delay');
+    const cardOtp = document.getElementById('card-otp');
+    const cardTurnaround = document.getElementById('card-turnaround');
+    const cardTaxi = document.getElementById('card-taxi');
+    if (cardDelay) cardDelay.style.display = 'flex';
+    if (cardOtp) cardOtp.style.display = 'block';
+    if (cardTurnaround) cardTurnaround.style.display = 'block';
+    if (cardTaxi) cardTaxi.style.display = 'block';
+
     if (mode === 'monthly') {
         if (monthlyTrends) monthlyTrends.style.display = 'contents';
         if (logsSection) logsSection.style.display = 'none';
@@ -629,7 +655,7 @@ function renderCompareCharts(scope, m1, m2, l1, l2, v1, v2) {
             const usage = {};
             for (let i=4; i<=15; i++) if (i!==13) usage[i]=0;
             l.forEach(r => {
-                const b = parseInt(r['Final Bay'] || (r._raw && r._raw[8]));
+                const b = parseInt(rowVal(r, 'Final Bay', 12));
                 if (usage[b] !== undefined) usage[b]++;
             });
             return Object.values(usage);
@@ -718,6 +744,15 @@ function parseMasterDateTime(timeStr, obsDateStr, defaultTimeStr = null) {
     return new Date(year, month, d, h, m);
 }
 
+// Read a named field from a row, falling back to a raw index ONLY when the
+// key is genuinely absent (not just an empty string) — prevents misreading
+// adjacent columns (e.g. AOBT) when a cell is legitimately blank.
+function rowVal(r, key, idx) {
+    if (!r) return '';
+    if (r[key] !== undefined) return r[key];
+    return (r._raw && r._raw[idx]) || '';
+}
+
 function getFinalBay(r) {
     if (!r || !r._raw) return null;
     const priorityIndices = [21, 19, 17, 15, 13]; // V, T, R, P, N (last change wins)
@@ -748,8 +783,8 @@ function updateFlowStats(logs) {
     const flows = { 'R-C': 0, 'C-R': 0, 'C-C': 0, 'R-R': 0 };
 
     logs.forEach(r => {
-        const from = classifyBay(r['Original Bay'] || (r._raw && r._raw[6]));
-        const to = classifyBay(r['Final Bay'] || (r._raw && r._raw[8]));
+        const from = classifyBay(rowVal(r, 'Original Bay', 10));
+        const to = classifyBay(rowVal(r, 'Final Bay', 12));
         
         if (from !== 'N/A' && to !== 'N/A') {
             flows[`${from}-${to}`]++;
@@ -768,7 +803,7 @@ function renderCharts(logs, master, mode, filterValue) {
     // 1. Bay Change Reasons (Doughnut)
     const reasons = {};
     logs.forEach(r => {
-        let reason = r['Bay Reason 1'] || r['Reason'] || (r._raw && (r._raw[10] || r._raw[11] || r._raw[9]));
+        let reason = rowVal(r, 'Bay Reason 1', 14) || r['Reason'];
         if (reason && typeof reason === 'string') {
             const clean = reason.trim();
             if (clean && clean !== '-' && clean !== 'Reason' && clean !== 'Bay Reason 1' && clean !== 'Gate Reason 1') {
@@ -816,10 +851,10 @@ function renderCharts(logs, master, mode, filterValue) {
 
     // Count from Logs (Changes/Mid-stay transitions)
     logs.forEach(r => {
-        const b = parseInt(r['Final Bay'] || (r._raw && r._raw[8]));
+        const b = parseInt(rowVal(r, 'Final Bay', 12));
         if (usage[b] !== undefined) {
             // Check if it's a real change (optional: prevent double counting if redundant)
-            const from = parseInt(r['Original Bay'] || (r._raw && r._raw[6]));
+            const from = parseInt(rowVal(r, 'Original Bay', 10));
             if (from !== b) {
                 usage[b]++;
                 console.log(`Log increment: Bay ${b} (from ${from})`);
@@ -882,9 +917,9 @@ function renderCharts(logs, master, mode, filterValue) {
     logs.forEach(l => {
         const dObj = getRecordDate(l.Date || (l._raw && l._raw[0]));
         if (!dObj) return;
-        const sibt = l['SIBT'] || (l._raw && l._raw[4]);
+        const sibt = rowVal(l, 'SIBT', 1);
         const time = parseMasterDateTime(sibt, dObj.iso);
-        if (time && l['Original Bay'] !== l['Final Bay']) {
+        if (time && rowVal(l, 'Original Bay', 10) !== rowVal(l, 'Final Bay', 12)) {
             hourlyData[time.getHours()].changes++;
         }
     });
@@ -978,15 +1013,14 @@ function updateTable(data) {
     tbody.innerHTML = '';
     data.slice(0, 10).forEach(r => {
         const tr = document.createElement('tr');
-        const finalBay = r['Final Bay'] || (r._raw && r._raw[8]);
+        const finalBay = rowVal(r, 'Final Bay', 12);
         const type = classifyBay(finalBay);
-        
-        const hasChange = r['Original Bay'] !== r['Final Bay'];
+
         const flightIn = (r['Flight In'] || '').trim();
         const flightOut = (r['Flight Out'] || '').trim();
         const combinedFlight = (flightIn && flightOut) ? `${flightIn}/${flightOut.replace(/[A-Za-z]+/, '')}` : (flightIn || flightOut || '-');
-        
-        const [reason, initial] = (r['Bay Reason 1'] || '-').split(',').map(s => s.trim());
+
+        const [reason, initial] = (rowVal(r, 'Bay Reason 1', 14) || '-').split(',').map(s => s.trim());
         
         // Color coding logic
         const bayTypeClass = type === 'C' ? 'bay-contact' : 'bay-remote';
@@ -995,7 +1029,7 @@ function updateTable(data) {
             <td style="font-weight:700">${combinedFlight}</td>
             <td><span style="background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 6px;">${r['A/C Type']}</span></td>
             <td>${r['SIBT']} → ${r['SOBT']}</td>
-            <td>${r['Original Bay']}</td>
+            <td>${rowVal(r, 'Original Bay', 10)}</td>
             <td>
                 <span class="bay-pill ${bayTypeClass}">
                     ${finalBay}
